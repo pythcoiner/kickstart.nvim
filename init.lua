@@ -152,7 +152,7 @@ vim.opt.inccommand = 'split'
 vim.opt.cursorline = true
 
 -- Minimal number of screen lines to keep above and below the cursor.
-vim.opt.scrolloff = 10
+vim.opt.scrolloff = 8
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
@@ -230,13 +230,12 @@ require('lazy').setup({
 
   -- NOTE: Plugins can also be added by using a table,
   -- with the first argument being the link and the following
-  -- keys can be used to configure plugin behavior/loading/etc.
+  -- keys can be used to configure plugin behavior/loading/etc.:/
   --
   -- Use `opts = {}` to force a plugin to be loaded.
   --
   --  This is equivalent to:
   --    require('Comment').setup({})
-
   -- "gc" to comment visual regions/lines
   { 'numToStr/Comment.nvim', opts = {} },
 
@@ -416,6 +415,7 @@ require('lazy').setup({
       'williamboman/mason-lspconfig.nvim',
       'WhoIsSethDaniel/mason-tool-installer.nvim',
 
+      { 'simrat39/rust-tools.nvim' },
       -- Useful status updates for LSP.
       -- NOTE: `opts = {}` is the same as calling `require('fidget').setup({})`
       { 'j-hui/fidget.nvim', opts = {} },
@@ -565,10 +565,10 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
-        -- clangd = {},
+        clangd = {},
         -- gopls = {},
         -- pyright = {},
-        -- rust_analyzer = {},
+        --rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
@@ -620,6 +620,47 @@ require('lazy').setup({
             server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
             require('lspconfig')[server_name].setup(server)
           end,
+        },
+      }
+
+      require('rust-tools').setup {
+        server = {
+          -- on_attach = function(_, bufnr)
+          -- vim.keymap.set('n', 'K', rt.hover_actions.hover_actions, { buffer = bufnr })
+          -- vim.keymap.set('n', '<leader>ca', rust_tools.code_action_group.code_action_group, { buffer = bufnr })
+          -- end,
+          settings = {
+
+            ['rust-analyzer'] = {
+              cargo = {
+                allFeatures = true,
+                loadOutDirsFromCheck = true,
+                runBuildScripts = true,
+              },
+              -- Add clippy lints for Rust.
+              checkOnSave = {
+                allFeatures = true,
+                command = 'clippy',
+                extraArgs = {
+                  '--',
+                  '--no-deps',
+                  '-Dclippy::correctness',
+                  '-Dclippy::complexity',
+                  '-Wclippy::perf',
+                  -- :wq
+                  -- '-Wclippy::pedantic',
+                },
+              },
+              procMacro = {
+                enable = true,
+                ignored = {
+                  ['async-trait'] = { 'async_trait' },
+                  ['napi-derive'] = { 'napi' },
+                  ['async-recursion'] = { 'async_recursion' },
+                },
+              },
+            },
+          },
         },
       }
     end,
