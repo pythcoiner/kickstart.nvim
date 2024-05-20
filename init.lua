@@ -208,7 +208,7 @@ end
 
 vim.api.nvim_set_keymap('n', '<leader>rc', ':lua run_cargo_clippy()<CR>', { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<leader>rr', ':lua run_cargo_run()<CR>', { noremap = true, silent = true })
-
+vim.api.nvim_set_keymap('n', '<leader>rf', ':RustFmt<CR>)', { noremap = true, silent = true })
 -- [[ AutoSave feature ]]
 -- Counter for auto-save events
 Auto_save_counter = 0
@@ -244,7 +244,7 @@ vim.api.nvim_create_autocmd('BufEnter', {
 
 -- [[ AutoRead feature ]]
 -- Function to auto-read the buffer
-local function auto_read()
+function _G.auto_read()
   if vim.fn.getcmdwintype() == '' and vim.bo.modifiable then
     vim.cmd 'checktime'
   end
@@ -722,7 +722,6 @@ require('lazy').setup({
                   '-Dclippy::correctness',
                   '-Dclippy::complexity',
                   '-Wclippy::perf',
-                  -- :wq
                   -- '-Wclippy::pedantic',
                 },
               },
@@ -990,11 +989,11 @@ require('lazy').setup({
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
   -- require 'kickstart.plugins.debug',
-  -- require 'kickstart.plugins.indent_line',
+  require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
-  -- require 'kickstart.plugins.autopairs',
+  require 'kickstart.plugins.autopairs',
   -- require 'kickstart.plugins.neo-tree',
-  -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
+  require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
