@@ -192,6 +192,23 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
 
+-- [[ NVimTree keymaps ]]
+vim.api.nvim_set_keymap('n', '<leader>aa', ':NvimTreeToggle<CR>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<leader>as', ':NvimTreeRefresh<CR>', { noremap = true, silent = true })
+
+-- [[ Rust customs keymaps ]]
+--
+function _G.run_cargo_run()
+  vim.cmd '!cargo run --release'
+end
+
+function _G.run_cargo_clippy()
+  vim.cmd '!cargo clippy'
+end
+
+vim.api.nvim_set_keymap('n', '<leader>rc', ':lua run_cargo_clippy()<CR>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<leader>rr', ':lua run_cargo_run()<CR>', { noremap = true, silent = true })
+
 -- [[ AutoSave feature ]]
 -- Counter for auto-save events
 Auto_save_counter = 0
@@ -222,7 +239,6 @@ vim.api.nvim_create_autocmd({ 'InsertLeave', 'TextChanged' }, {
 vim.api.nvim_create_autocmd('BufEnter', {
   callback = function()
     vim.api.nvim_buf_set_keymap(0, 'i', '<Esc>', '<Esc>:lua auto_save()<CR>', { noremap = true, silent = true })
-    vim.api.nvim_buf_set_keymap(0, 'i', '<CR>', '<CR>:lua auto_save()<CR>', { noremap = true, silent = true })
   end,
 })
 
@@ -246,7 +262,7 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight when yanking (copying) text',
   group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
   callback = function()
-    vim.highlight.on_yank()
+    vim.highlight.on_yank { timeout = 800 }
   end,
 })
 
@@ -273,6 +289,16 @@ vim.opt.rtp:prepend(lazypath)
 require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
   'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
+
+  {
+    'kyazdani42/nvim-tree.lua',
+    requires = {
+      'kyazdani42/nvim-web-devvicons',
+    },
+    config = function()
+      require('nvim-tree').setup {}
+    end,
+  },
 
   'rhysd/vim-grammarous', -- english grammar checker
   -- NOTE: Plugins can also be added by using a table,
@@ -462,6 +488,8 @@ require('lazy').setup({
       'williamboman/mason-lspconfig.nvim',
       'WhoIsSethDaniel/mason-tool-installer.nvim',
 
+      -- [[ rust-tools used in order to have clipy lints
+      -- it uses rust_analyzer under the hod, it can be installed using 'rustup component add rust-analyser' ]]
       { 'simrat39/rust-tools.nvim' },
       -- Useful status updates for LSP.
       -- NOTE: `opts = {}` is the same as calling `require('fidget').setup({})`
