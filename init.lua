@@ -106,7 +106,6 @@ vim.opt.number = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
-
 -- Don't show the mode, since it's already in the status line
 vim.opt.showmode = false
 
@@ -152,7 +151,7 @@ vim.opt.inccommand = 'split'
 vim.opt.cursorline = true
 
 -- Minimal number of screen lines to keep above and below the cursor.
-vim.opt.scrolloff = 8
+vim.opt.scrolloff = 10
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
@@ -193,6 +192,53 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
 
+-- [[ AutoSave feature ]]
+-- Counter for auto-save events
+Auto_save_counter = 0
+
+-- Function to auto-save the buffer
+function _G.auto_save()
+  local bufnr = vim.api.nvim_get_current_buf()
+  if vim.bo[bufnr].modifiable and not vim.bo[bufnr].readonly then
+    vim.cmd 'silent! write'
+  end
+end
+
+-- Function to handle auto-save with a counter
+function _G.counted_auto_save()
+  Auto_save_counter = Auto_save_counter + 1
+  if Auto_save_counter >= 5 then
+    auto_save()
+    Auto_save_counter = 0
+  end
+end
+
+-- Auto-save on InsertLeave and TextChanged events
+vim.api.nvim_create_autocmd({ 'InsertLeave', 'TextChanged' }, {
+  callback = counted_auto_save,
+})
+
+--: Auto-save on pressing Escape or Enter
+vim.api.nvim_create_autocmd('BufEnter', {
+  callback = function()
+    vim.api.nvim_buf_set_keymap(0, 'i', '<Esc>', '<Esc>:lua auto_save()<CR>', { noremap = true, silent = true })
+    vim.api.nvim_buf_set_keymap(0, 'i', '<CR>', '<CR>:lua auto_save()<CR>', { noremap = true, silent = true })
+  end,
+})
+
+-- [[ AutoRead feature ]]
+-- Function to auto-read the buffer
+local function auto_read()
+  if vim.fn.getcmdwintype() == '' and vim.bo.modifiable then
+    vim.cmd 'checktime'
+  end
+end
+
+-- Auto-read on FocusGained and CursorHold events
+vim.api.nvim_create_autocmd({ 'FocusGained', 'CursorHold' }, {
+  callback = auto_read,
+})
+
 -- Highlight when yanking (copying) text
 --  Try it with `yap` in normal mode
 --  See `:help vim.highlight.on_yank()`
@@ -228,6 +274,7 @@ require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
   'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
 
+  'rhysd/vim-grammarous', -- english grammar checker
   -- NOTE: Plugins can also be added by using a table,
   -- with the first argument being the link and the following
   -- keys can be used to configure plugin behavior/loading/etc.:/
