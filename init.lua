@@ -41,6 +41,7 @@ What is Kickstart?
     - :help lua-guide
     - (or HTML version): https://neovim.io/doc/user/lua-guide.html
 
+
 Kickstart Guide:
 
   TODO: The very first thing you should do is to run the command `:Tutor` in Neovim.
@@ -214,6 +215,7 @@ vim.api.nvim_set_keymap('n', '<leader>rf', ':RustFmt<CR>)', { noremap = true, si
 Auto_save_counter = 0
 
 -- Function to auto-save the buffer
+
 function _G.auto_save()
   local bufnr = vim.api.nvim_get_current_buf()
   if vim.bo[bufnr].modifiable and not vim.bo[bufnr].readonly then
@@ -286,10 +288,12 @@ vim.opt.rtp:prepend(lazypath)
 --    :Lazy update
 --
 -- NOTE: Here is where you install your plugins.
+
 require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
   'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
 
+  -- nvim-tree
   {
     'kyazdani42/nvim-tree.lua',
     requires = {
@@ -305,10 +309,6 @@ require('lazy').setup({
   -- with the first argument being the link and the following
   -- keys can be used to configure plugin behavior/loading/etc.:/
   --
-  -- Use `opts = {}` to force a plugin to be loaded.
-  --
-  --  This is equivalent to:
-  --    require('Comment').setup({})
   -- "gc" to comment visual regions/lines
   { 'numToStr/Comment.nvim', opts = {} },
 
@@ -950,7 +950,7 @@ require('lazy').setup({
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'vim', 'vimdoc' },
+      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'vim', 'vimdoc', 'rust', 'python' },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -961,6 +961,16 @@ require('lazy').setup({
         additional_vim_regex_highlighting = { 'ruby' },
       },
       indent = { enable = true, disable = { 'ruby' } },
+      incremental_selection = {
+        enable = true,
+      },
+      text_objects = {
+        enable = true,
+      },
+      fold = {
+        enable = true,
+        disable = {},
+      },
     },
     config = function(_, opts)
       -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
@@ -970,6 +980,17 @@ require('lazy').setup({
       ---@diagnostic disable-next-line: missing-fields
       require('nvim-treesitter.configs').setup(opts)
 
+      vim.opt.foldmethod = 'expr'
+      vim.opt.foldexpr = 'nvim_treesitter#foldexpr()'
+      vim.opt.foldlevelstart = 99 -- open all folds by default
+
+      -- fold custom levels
+      vim.api.nvim_set_keymap('n', 'z1', ':set foldlevel=1<CR>', { noremap = true, silent = true })
+      vim.api.nvim_set_keymap('n', 'z2', ':set foldlevel=2<CR>', { noremap = true, silent = true })
+      vim.api.nvim_set_keymap('n', 'z3', ':set foldlevel=3<CR>', { noremap = true, silent = true })
+      vim.api.nvim_set_keymap('n', 'z4', ':set foldlevel=4<CR>', { noremap = true, silent = true })
+      vim.api.nvim_set_keymap('n', 'z5', ':set foldlevel=5<CR>', { noremap = true, silent = true })
+      vim.api.nvim_set_keymap('n', 'z6', ':set foldlevel=6<CR>', { noremap = true, silent = true })
       -- There are additional nvim-treesitter modules that you can use to interact
       -- with nvim-treesitter. You should go explore a few and see what interests you:
       --
