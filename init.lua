@@ -942,7 +942,7 @@ require('lazy').setup({
       end
 
       -- select the theme here
-      vim.cmd.colorscheme 'minischeme'
+      vim.cmd.colorscheme 'minicyan'
       -- ... and there is more!
       --  Check out: https://github.com/echasnovski/mini.nvim
     end,
