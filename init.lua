@@ -225,7 +225,7 @@ end
 -- Function to handle auto-save with a counter
 function _G.counted_auto_save()
   Auto_save_counter = Auto_save_counter + 1
-  if Auto_save_counter >= 5 then
+  if Auto_save_counter >= 1 then
     auto_save()
     Auto_save_counter = 0
   end
@@ -236,12 +236,12 @@ vim.api.nvim_create_autocmd({ 'InsertLeave', 'TextChanged' }, {
   callback = counted_auto_save,
 })
 
---: Auto-save on pressing Escape or Enter
-vim.api.nvim_create_autocmd('BufEnter', {
-  callback = function()
-    vim.api.nvim_buf_set_keymap(0, 'i', '<Esc>', '<Esc>:lua auto_save()<CR>', { noremap = true, silent = true })
-  end,
-})
+-- --: Auto-save on pressing Escape or Enter
+-- vim.api.nvim_create_autocmd('BufEnter', {
+--   callback = function()
+--     vim.api.nvim_buf_set_keymap(0, 'i', '<Esc>', '<Esc>:lua auto_save()<CR>', { noremap = true, silent = true })
+--   end,
+-- })
 
 -- [[ AutoRead feature ]]
 -- Function to auto-read the buffer
