@@ -156,6 +156,12 @@ vim.opt.scrolloff = 10
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
+-- Resize inner window
+vim.keymap.set('n', '<C-Up>', ':resize +5<CR>', { desc = 'Resize window Up' })
+vim.keymap.set('n', '<C-Down>', ':resize -5<CR>', { desc = 'Resize window Down' })
+vim.keymap.set('n', '<C-Left>', ':vertical resize -5<CR>', { desc = 'Resize window Left' })
+vim.keymap.set('n', '<C-Right>', ': vertical resize +5<CR>', { desc = 'Resize window Right' })
+
 -- Set highlight on search, but clear on pressing <Esc> in normal mode
 vim.opt.hlsearch = true
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
