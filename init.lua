@@ -301,6 +301,12 @@ require('lazy').setup({
     end,
   },
 
+  -- Git integration
+  'tpope/vim-fugitive',
+
+  -- markdown tables
+  'dhruvasagar/vim-table-mode',
+
   'rhysd/vim-grammarous', -- english grammar checker
   -- NOTE: Plugins can also be added by using a table,
   -- with the first argument being the link and the following
@@ -609,18 +615,24 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
+        -- c/c++
         clangd = {},
-        -- gopls = {},
-        -- pyright = {},
-        --rust_analyzer = {},
-        -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
-        --
-        -- Some languages (like typescript) have entire language plugins that can be useful:
-        --    https://github.com/pmizio/typescript-tools.nvim
-        --
-        -- But for many setups, the LSP (`tsserver`) will work just fine
-        -- tsserver = {},
-        --
+        -- markdown
+        marksman = {},
+        -- python
+        -- pylyzer = {},
+        -- go
+        gopls = {},
+        pyright = {
+          settings = {
+            python = {
+              analysis = {
+                autoSearchPaths = true,
+                useLibraryCodeFortypes = true,
+              },
+            },
+          },
+        },
 
         lua_ls = {
           -- cmd = {...},
@@ -632,7 +644,7 @@ require('lazy').setup({
                 callSnippet = 'Replace',
               },
               -- You can toggle below to ignore Lua_LS's noisy `missing-fields` warnings
-              -- diagnostics = { disable = { 'missing-fields' } },
+              diagnostics = { disable = { 'missing-fields' } },
             },
           },
         },
