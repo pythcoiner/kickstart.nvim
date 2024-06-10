@@ -182,16 +182,70 @@ vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' }
 --  Use CTRL+<hjkl> to switch between windows
 --
 --  See `:help wincmd` for a list of all window commands
-vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
-vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
-vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
-vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+vim.keymap.set('n', 'H', '<C-w><C-h>', { desc = 'Move focus to the left window' })
+vim.keymap.set('n', 'L', '<C-w><C-l>', { desc = 'Move focus to the right window' })
+vim.keymap.set('n', 'J', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
+vim.keymap.set('n', 'K', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
-vim.keymap.set('n', '<leader>cj', ':Gitsigns next_hunk<CR>', { desc = 'Next hunk' })
-vim.keymap.set('n', '<leader>ck', ':Gitsigns prev_hunk<CR>', { desc = 'Previous hunk' })
+-- New QFL
+vim.keymap.set('n', '<leader>cn', ":call setqflist([], 'r')<CR>", { desc = 'New QuickFixList' })
 
--- [[ Basic Autocommands ]]
---  See `:help lua-guide-autocommands`
+-- Add an entry to the QuickFixList
+function AddCommentToQFList()
+  -- Prompt the user to enter a comment
+  local userComment = vim.fn.input 'Enter comment/info: '
+
+  -- Check if the user entered a comment
+  if userComment ~= '' then
+    -- Define the quickfix entry
+    local entry = { {
+      filename = vim.fn.expand '%:p',
+      lnum = vim.fn.line '.',
+      col = vim.fn.col '.',
+      text = userComment,
+    } }
+
+    -- Capture current buffer number before opening quickfix
+    local current_buf = vim.api.nvim_get_current_buf()
+
+    -- Add the entry to the quickfix list and append it
+    vim.fn.setqflist(entry, 'a')
+
+    -- Return to the original buffer
+    vim.api.nvim_set_current_buf(current_buf)
+  end
+end
+
+-- Remove an entry from the QuickFixList
+function RemoveQFEntry()
+  local lnum = vim.fn.line '.'
+
+  -- Get the current list of quickfix entries
+  local qf_list = vim.fn.getqflist()
+
+  -- Remove the entry at the given index (1-based indexing in Lua)
+  table.remove(qf_list, lnum)
+
+  -- Set the modified list back as the new quickfix list
+  vim.fn.setqflist(qf_list, 'r')
+end
+
+vim.keymap.set('n', '<leader>cx', AddCommentToQFList, { noremap = true, silent = true, desc = 'Add entry to QuickFixList' })
+vim.keymap.set('n', '<leader>co', ':copen<CR>', { desc = 'Open QuickFixList' })
+vim.keymap.set('n', '<leader>cd', RemoveQFEntry, { desc = 'Remove QuickFixList entry' })
+vim.keymap.set('n', '<leader>cc', ':ccl<CR>', { desc = 'Close QuickFixList' })
+
+-- Move between hunks
+vim.keymap.set('n', '<C-l>', ':Gitsigns next_hunk<CR>', { desc = 'Next hunk' })
+vim.keymap.set('n', '<C-h>', ':Gitsigns prev_hunk<CR>', { desc = 'Previous hunk' })
+
+-- Page Up/Down
+vim.keymap.set('n', '<C-j>', '<C-d>', { desc = 'Page Down' })
+vim.keymap.set('n', '<C-k>', '<C-u>', { desc = 'Page Up' })
+
+-- Quick Fix List feature
+vim.keymap.set('n', '<leader>c<leader>', ':cnext', { desc = ' Next QFL element' })
+vim.keymap.set('n', '<C-j>', '<C-d>', { desc = 'Page Down' })
 
 -- [[ NVimTree keymaps ]]
 vim.api.nvim_set_keymap('n', '<leader>aa', ':NvimTreeToggle<CR>', { noremap = true, silent = true })
@@ -206,7 +260,6 @@ end
 function _G.run_cargo_clippy()
   vim.cmd '!cargo clippy'
 end
-
 vim.api.nvim_set_keymap('n', '<leader>rc', ':lua run_cargo_clippy()<CR>', { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<leader>rr', ':lua run_cargo_run()<CR>', { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<leader>rf', ':RustFmt<CR>)', { noremap = true, silent = true })
@@ -277,16 +330,6 @@ if not vim.loop.fs_stat(lazypath) then
 end ---@diagnostic disable-next-line: undefined-field
 vim.opt.rtp:prepend(lazypath)
 
--- [[ Configure and install plugins ]]
---
---  To check the current status of your plugins, run
---    :Lazy
---
---  You can press `?` in this menu for help. Use `:q` to close the window
---
---  To update plugins you can run
---    :Lazy update
---
 -- NOTE: Here is where you install your plugins.
 
 require('lazy').setup({
@@ -373,13 +416,6 @@ require('lazy').setup({
       }, { mode = 'v' })
     end,
   },
-
-  -- NOTE: Plugins can specify dependencies.
-  --
-  -- The dependencies are proper plugin specifications as well - anything
-  -- you do for a plugin at the top level, you can do for a dependency.
-  --
-  -- Use the `dependencies` key to specify the dependencies of a particular plugin
 
   { -- Fuzzy Finder (files, lsp, etc)
     'nvim-telescope/telescope.nvim',
@@ -554,7 +590,7 @@ require('lazy').setup({
 
           -- Opens a popup that displays documentation about the word under your cursor
           --  See `:help K` for why this keymap.
-          map('K', vim.lsp.buf.hover, 'Hover Documentation')
+          -- map('K', vim.lsp.buf.hover, 'Hover Documentation')
 
           -- WARN: This is not Goto Definition, this is Goto Declaration.
           --  For example, in C this would take you to the header.
