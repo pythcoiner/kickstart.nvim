@@ -1,89 +1,3 @@
---[[
-
-=====================================================================
-==================== READ THIS BEFORE CONTINUING ====================
-=====================================================================
-========                                    .-----.          ========
-========         .----------------------.   | === |          ========
-========         |.-""""""""""""""""""-.|   |-----|          ========
-========         ||                    ||   | === |          ========
-========         ||   KICKSTART.NVIM   ||   |-----|          ========
-========         ||                    ||   | === |          ========
-========         ||                    ||   |-----|          ========
-========         ||:Tutor              ||   |:::::|          ========
-========         |'-..................-'|   |____o|          ========
-========         `"")----------------(""`   ___________      ========
-========        /::::::::::|  |::::::::::\  \ no mouse \     ========
-========       /:::========|  |==hjkl==:::\  \ required \    ========
-========      '""""""""""""'  '""""""""""""'  '""""""""""'   ========
-========                                                     ========
-=====================================================================
-=====================================================================
-
-What is Kickstart?
-
-  Kickstart.nvim is *not* a distribution.
-
-  Kickstart.nvim is a starting point for your own configuration.
-    The goal is that you can read every line of code, top-to-bottom, understand
-    what your configuration is doing, and modify it to suit your needs.
-
-    Once you've done that, you can start exploring, configuring and tinkering to
-    make Neovim your own! That might mean leaving Kickstart just the way it is for a while
-    or immediately breaking it into modular pieces. It's up to you!
-
-    If you don't know anything about Lua, I recommend taking some time to read through
-    a guide. One possible example which will only take 10-15 minutes:
-      - https://learnxinyminutes.com/docs/lua/
-
-    After understanding a bit more about Lua, you can use `:help lua-guide` as a
-    reference for how Neovim integrates Lua.
-    - :help lua-guide
-    - (or HTML version): https://neovim.io/doc/user/lua-guide.html
-
-
-Kickstart Guide:
-
-  TODO: The very first thing you should do is to run the command `:Tutor` in Neovim.
-
-    If you don't know what this means, type the following:
-      - <escape key>
-      - :
-      - Tutor
-      - <enter key>
-
-    (If you already know the Neovim basics, you can skip this step.)
-
-  Once you've completed that, you can continue working through **AND READING** the rest
-  of the kickstart init.lua.
-
-  Next, run AND READ `:help`.
-    This will open up a help window with some basic information
-    about reading, navigating and searching the builtin help documentation.
-
-    This should be the first place you go to look when you're stuck or confused
-    with something. It's one of my favorite Neovim features.
-
-    MOST IMPORTANTLY, we provide a keymap "<space>sh" to [s]earch the [h]elp documentation,
-    which is very useful when you're not exactly sure of what you're looking for.
-
-  I have left several `:help X` comments throughout the init.lua
-    These are hints about where to find more information about the relevant settings,
-    plugins or Neovim features used in Kickstart.
-
-   NOTE: Look for lines like this
-
-    Throughout the file. These are for you, the reader, to help you understand what is happening.
-    Feel free to delete them once you know what you're doing, but they should serve as a guide
-    for when you are first encountering a few different constructs in your Neovim config.
-
-If you experience any errors while trying to install kickstart, run `:checkhealth` for more info.
-
-I hope you enjoy your Neovim journey,
-- TJ
-
-P.S. You can delete this when you're done too. It's your config now! :)
---]]
 -- Set <space> as the leader key
 -- See `:help mapleader`
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
@@ -95,8 +9,7 @@ vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.opt`
--- NOTE: You can change these options as you wish!
---  For more options, you can see `:help option-list`
+-- NOTE: for more options, you can see `:help option-list`
 
 -- Make line numbers default
 vim.opt.number = true
@@ -188,7 +101,6 @@ vim.keymap.set('n', 'J', '<C-w><C-j>', { desc = 'Move focus to the lower window'
 vim.keymap.set('n', 'K', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
 -- New QFL
-vim.keymap.set('n', '<leader>cn', ":call setqflist([], 'r')<CR>", { desc = 'New QuickFixList' })
 
 -- Add an entry to the QuickFixList
 function AddCommentToQFList()
@@ -213,6 +125,7 @@ function AddCommentToQFList()
 
     -- Return to the original buffer
     vim.api.nvim_set_current_buf(current_buf)
+    SaveTodo()
   end
 end
 
@@ -228,10 +141,119 @@ function RemoveQFEntry()
 
   -- Set the modified list back as the new quickfix list
   vim.fn.setqflist(qf_list, 'r')
+  SaveTodo()
+end
+
+-- Check if we are at a repository root (contains a .git folder)
+function RootIsGitRepo()
+  local cwd = vim.fn.getcwd()
+  local git_dir = cwd .. '/.git'
+  if vim.fn.isdirectory(git_dir) == 0 then
+    return false
+  end
+  return true
+end
+
+-- Add .todo to the excluded files
+function MaybeExcludeTodo()
+  local exclude = vim.fn.getcwd() .. '/.git/info/exclude'
+  -- Read the content of the exclude file
+  local lines = {}
+  for line in io.lines(exclude) do
+    table.insert(lines, line)
+  end
+
+  -- Check if the exclude file contains ".todo"
+  for _, line in ipairs(lines) do
+    if line == '.todo' then
+      print '.todo is already in the exclude file.'
+      return false
+    end
+  end
+
+  -- Append ".todo" to the exclude file
+  local file = io.open(exclude, 'a')
+  if file then
+    file:write '.todo\n'
+    file:close()
+    print '.todo added to the exclude file.'
+    return true
+  else
+    print 'Error opening the exclude file for writing.'
+    return false
+  end
+end
+
+_G.todo = 0
+function LoadTodo()
+  local cwd = vim.fn.getcwd()
+  local todo_file = cwd .. '/.todo'
+
+  if _G.todo == 1 then
+    vim.cmd 'copen' -- Open the quickfix window
+    return
+  end
+
+  -- Check if the .todo file exists
+  if vim.fn.filereadable(todo_file) == 0 then
+    vim.fn.setqflist({}, 'r', { title = '.todo' })
+    vim.cmd 'copen' -- Open the quickfix window
+    print '.todo file does not exist.'
+    return
+  end
+
+  -- Read the content of the .todo file
+  local lines = {}
+  for line in io.lines(todo_file) do
+    local filename, lnum, col, text = string.match(line, '([^:]+):(%d+):(%d+):(.+)')
+    table.insert(lines, {
+      filename = filename,
+      lnum = tonumber(lnum),
+      col = tonumber(col),
+      text = text,
+    })
+  end
+
+  -- Load the lines into the quickfix list
+  vim.fn.setqflist({}, 'r', { title = '.todo', items = lines })
+  vim.cmd 'copen' -- Open the quickfix window
+  _G.todo = 1
+  print '.todo content has been loaded into the quickfix list.'
+end
+
+function SaveTodo()
+  if RootIsGitRepo() then
+    MaybeExcludeTodo()
+
+    local cwd = vim.fn.getcwd()
+    local todo_file = cwd .. '/.todo'
+
+    -- Get the current quickfix list
+    local quickfix_list = vim.fn.getqflist()
+
+    -- Convert the quickfix list to a string
+    local quickfix_content = ''
+    for _, item in ipairs(quickfix_list) do
+      local filename = vim.fn.bufname(item.bufnr)
+      quickfix_content = quickfix_content .. string.format('%s:%d:%d:%s\n', filename, item.lnum, item.col, item.text)
+    end
+
+    -- Write the quickfix content to the .todo file
+    local file = io.open(todo_file, 'w')
+    if file then
+      file:write(quickfix_content)
+      file:close()
+      print 'Todo saved!'
+    else
+      print 'Error opening .todo file for writing.'
+    end
+  else
+    print 'Cannot save todo as the root is not a git repo'
+  end
 end
 
 vim.keymap.set('n', '<leader>cx', AddCommentToQFList, { noremap = true, silent = true, desc = 'Add entry to QuickFixList' })
-vim.keymap.set('n', '<leader>co', ':copen<CR>', { desc = 'Open QuickFixList' })
+vim.keymap.set('n', '<leader>co', LoadTodo, { desc = 'Open QuickFixList' })
 vim.keymap.set('n', '<leader>cd', RemoveQFEntry, { desc = 'Remove QuickFixList entry' })
 vim.keymap.set('n', '<leader>cc', ':ccl<CR>', { desc = 'Close QuickFixList' })
 
@@ -247,9 +269,73 @@ vim.keymap.set('n', '<C-k>', '<C-u>', { desc = 'Page Up' })
 vim.keymap.set('n', '<leader>c<leader>', ':cnext', { desc = ' Next QFL element' })
 vim.keymap.set('n', '<C-j>', '<C-d>', { desc = 'Page Down' })
 
+-- Diagram mode
+
+-- replace chars by spaces in visual selected mode
+_G.ReplaceWithSpaces = function()
+  if _G.diagram == 1 then
+    -- Get the selected range
+    local start_pos = vim.fn.getpos "'<"
+    local end_pos = vim.fn.getpos "'>"
+
+    -- Enter normal mode
+    vim.api.nvim_command 'normal! \\<Esc>'
+
+    -- Loop through each line in the selected range
+    for line = start_pos[2], end_pos[2] do
+      -- Get the column range
+      local start_col = start_pos[3] - 1
+      local end_col = end_pos[3] - 1
+
+      -- Replace characters in the selected range with spaces
+      for col = start_col, end_col do
+        vim.api.nvim_buf_set_text(0, line - 1, col, line - 1, col + 1, { ' ' })
+      end
+    end
+  end
+end
+
+_G.diagram = 0
+function DiagramMode()
+  if _G.diagram == 0 then
+    _G.diagram = 1
+    vim.opt.virtualedit = 'all'
+    vim.opt.listchars = { tab = '» ', trail = ' ', nbsp = '␣' }
+    require('ibl').update { enabled = false }
+
+    -- draw a line on HJKL keystokes
+    vim.api.nvim_buf_set_keymap(0, 'n', 'J', '<C-v>j:VBox<CR>', { noremap = true })
+    vim.api.nvim_buf_set_keymap(0, 'n', 'K', '<C-v>k:VBox<CR>', { noremap = true })
+    vim.api.nvim_buf_set_keymap(0, 'n', 'L', '<C-v>l:VBox<CR>', { noremap = true })
+    vim.api.nvim_buf_set_keymap(0, 'n', 'H', '<C-v>h:VBox<CR>', { noremap = true })
+    -- rebind 'x' -> overwrite w/ a space
+    vim.api.nvim_buf_set_keymap(0, 'n', 'x', 'r <Esc>', { noremap = true })
+    vim.keymap.set('x', 'd', ReplaceWithSpaces, { noremap = true })
+    -- draw a box by pressing "f" with visual selection
+    vim.api.nvim_buf_set_keymap(0, 'v', 'f', ':VBox<CR>', { noremap = true })
+    vim.api.nvim_echo({ { 'Diagram mode enabled!', 'Normal' } }, false, {})
+  else
+    _G.diagram = 0
+    vim.opt.virtualedit = ''
+    vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
+    require('ibl').update { enabled = true }
+
+    vim.api.nvim_buf_del_keymap(0, 'n', 'J')
+    vim.api.nvim_buf_del_keymap(0, 'n', 'K')
+    vim.api.nvim_buf_del_keymap(0, 'n', 'L')
+    vim.api.nvim_buf_del_keymap(0, 'n', 'H')
+    vim.api.nvim_buf_del_keymap(0, 'n', 'x')
+    vim.api.nvim_buf_del_keymap(0, 'v', 'f')
+    vim.api.nvim_echo({ { 'Diagram mode disabled!', 'Normal' } }, false, {})
+  end
+end
+vim.keymap.set('n', '<leader>dd', DiagramMode, { desc = 'Disable diagram mode' })
+
+-- Map the function to a key combination in visual block mode
+vim.api.nvim_set_keymap('x', '<Leader>r', ':lua ReplaceWithSpaces()<CR>', { noremap = true, silent = true })
+
 -- [[ NVimTree keymaps ]]
 vim.api.nvim_set_keymap('n', '<leader>aa', ':NvimTreeToggle<CR>', { noremap = true, silent = true })
-vim.api.nvim_set_keymap('n', '<leader>as', ':NvimTreeRefresh<CR>', { noremap = true, silent = true })
 
 -- [[ Rust customs keymaps ]]
 --
@@ -336,9 +422,12 @@ require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
   'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
 
+  -- Ascii diagram
+  'pythcoiner/venn.nvim',
+
   -- nvim-tree
   {
-    'kyazdani42/nvim-tree.lua',
+    'pythcoiner/nvim-tree.lua',
     requires = {
       'kyazdani42/nvim-web-devvicons',
     },
