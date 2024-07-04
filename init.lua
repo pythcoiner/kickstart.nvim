@@ -438,12 +438,13 @@ require('lazy').setup({
         auto_preview = false,
         position = 'right',
         width = 25,
+        auto_close = true,
         show_numbers = false,
         show_relative_numbers = false,
         show_symbol_details = true,
         preview_bg_highlight = 'Pmenu',
         keymaps = {
-          close = { '<Esc>', 'q' },
+          close = { 'q' },
           goto_location = '<Cr>',
           focus_location = 'o',
           hover_symbol = '<C-space>',
@@ -491,7 +492,10 @@ require('lazy').setup({
       'kyazdani42/nvim-web-devvicons',
     },
     config = function()
-      require('nvim-tree').setup {}
+      require('nvim-tree').setup {
+        auto_close = true,
+      }
+      vim.cmd 'autocmd VimEnter * NvimTreeToggle'
     end,
   },
 
