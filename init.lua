@@ -1,3 +1,11 @@
+-- Increase message history size
+-- increases the lines displayed w/ :messages
+vim.o.history = 1000
+
+-- Messages/logs verbosity
+-- 1 = less, 15 = more
+vim.o.verbose = 1
+
 -- Set <space> as the leader key
 -- See `:help mapleader`
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
