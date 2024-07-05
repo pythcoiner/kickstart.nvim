@@ -492,9 +492,7 @@ require('lazy').setup({
       'kyazdani42/nvim-web-devvicons',
     },
     config = function()
-      require('nvim-tree').setup {
-        auto_close = true,
-      }
+      require('nvim-tree').setup {}
       vim.cmd 'autocmd VimEnter * NvimTreeToggle'
     end,
   },
@@ -1099,16 +1097,45 @@ require('lazy').setup({
       --  You could remove this setup call if you don't like it,
       --  and try some other statusline plugin
       local statusline = require 'mini.statusline'
-      -- set use_icons to true if you have a Nerd Font
-      statusline.setup { use_icons = vim.g.have_nerd_font }
 
-      -- You can configure sections in the statusline by overriding their
-      -- default behavior. For example, here we set the section for
-      -- cursor location to LINE:COLUMN
-      ---@diagnostic disable-next-line: duplicate-set-field
+      -- Custom section for the location with percentage
       statusline.section_location = function()
-        return '%2l:%-2v'
+        local line = vim.fn.line '.'
+        local total_lines = vim.fn.line '$'
+        local percentage = math.floor((line / total_lines) * 100)
+        return string.format('%2d/%2d:%-2d %3d%%%%', line, total_lines, vim.fn.col '.', percentage)
       end
+
+      statusline.setup {
+        content = {
+          -- Define the active section
+          active = function()
+            -- Sections for active statusline
+            local mode, mode_hl = MiniStatusline.section_mode { trunc_width = 120 }
+            local git = MiniStatusline.section_git { trunc_width = 75 }
+            local diagnostics = MiniStatusline.section_diagnostics { trunc_width = 75 }
+            local filename = MiniStatusline.section_filename { trunc_width = 140 }
+            local fileinfo = MiniStatusline.section_fileinfo { trunc_width = 120 }
+            local location = statusline.section_location()
+
+            return MiniStatusline.combine_groups {
+              { hl = mode_hl, strings = { mode } },
+              { hl = 'MiniStatuslineDevinfo', strings = { git, diagnostics } },
+              { hl = mode_hl, strings = { location } },
+              '%<', -- Mark general truncate point
+              { hl = 'MiniStatuslineFilename', strings = { filename } },
+              '%=', -- End left alignment
+              { hl = 'MiniStatuslineFileinfo', strings = { fileinfo } },
+            }
+          end,
+
+          -- Inactive statusline
+          inactive = nil,
+        },
+        use_icons = vim.g.have_nerd_font,
+      }
+
+      ---@diagnostic disable-next-line: duplicate-set-field
 
       -- select the theme here
       vim.cmd.colorscheme 'minicyan'
