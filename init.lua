@@ -4,7 +4,7 @@ vim.o.history = 1000
 
 -- Messages/logs verbosity
 -- 1 = less, 15 = more
-vim.o.verbose = 1
+vim.o.verbose = 0
 
 -- Set <space> as the leader key
 -- See `:help mapleader`
