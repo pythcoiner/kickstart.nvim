@@ -265,10 +265,6 @@ vim.keymap.set('n', '<leader>co', LoadTodo, { desc = 'Open QuickFixList' })
 vim.keymap.set('n', '<leader>cd', RemoveQFEntry, { desc = 'Remove QuickFixList entry' })
 vim.keymap.set('n', '<leader>cc', ':ccl<CR>', { desc = 'Close QuickFixList' })
 
--- Move between hunks
-vim.keymap.set('n', '<C-l>', ':Gitsigns next_hunk<CR>', { desc = 'Next hunk' })
-vim.keymap.set('n', '<C-h>', ':Gitsigns prev_hunk<CR>', { desc = 'Previous hunk' })
-
 -- Page Up/Down
 vim.keymap.set('n', '<C-j>', '<C-d>', { desc = 'Page Down' })
 vim.keymap.set('n', '<C-k>', '<C-u>', { desc = 'Page Up' })
@@ -441,6 +437,20 @@ require('lazy').setup({
   -- Ascii diagram
   'pythcoiner/venn.nvim',
 
+  -- Git diffs
+  {
+    'airblade/vim-gitgutter',
+    config = function()
+      -- Always show diffs relative to the master branch
+      vim.g.gitgutter_diff_base = 'master'
+
+      -- Optional: Other configurations
+      vim.g.gitgutter_enabled = 1
+      vim.g.gitgutter_highlight_lines = 1
+      -- vim.g.gitgutter_map_keys = 0  -- Disable default mappings
+    end,
+  },
+
   -- Code structure overview
   {
     'simrat39/symbols-outline.nvim',
@@ -523,39 +533,6 @@ require('lazy').setup({
   --
   -- "gc" to comment visual regions/lines
   { 'numToStr/Comment.nvim', opts = {} },
-
-  -- Here is a more advanced example where we pass configuration
-  -- options to `gitsigns.nvim`. This is equivalent to the following Lua:
-  --    require('gitsigns').setup({ ... })
-  --
-  -- See `:help gitsigns` to understand what the configuration keys do
-  { -- Adds git related signs to the gutter, as well as utilities for managing changes
-    'lewis6991/gitsigns.nvim',
-    opts = {
-      signs = {
-        add = { text = '+' },
-        change = { text = '~' },
-        delete = { text = '_' },
-        topdelete = { text = '‾' },
-        changedelete = { text = '~' },
-      },
-    },
-  },
-
-  -- NOTE: Plugins can also be configured to run Lua code when they are loaded.
-  --
-  -- This is often very useful to both group configuration, as well as handle
-  -- lazy loading plugins that don't need to be loaded immediately at startup.
-  --
-  -- For example, in the following configuration, we use:
-  --  event = 'VimEnter'
-  --
-  -- which loads which-key before all the UI elements are loaded. Events can be
-  -- normal autocommands events (`:help autocmd-events`).
-  --
-  -- Then, because we use the `config` key, the configuration only runs
-  -- after the plugin has been loaded:
-  --  config = function() ... end
 
   { -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
@@ -1224,7 +1201,7 @@ require('lazy').setup({
   -- require 'kickstart.plugins.lint',
   require 'kickstart.plugins.autopairs',
   -- require 'kickstart.plugins.neo-tree',
-  require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
+  -- require 'kickstart.plugins.gitsigns',
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
