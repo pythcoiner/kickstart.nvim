@@ -275,7 +275,12 @@ vim.keymap.set('n', '<C-k>', '<C-u>', { desc = 'Page Up' })
 
 -- Quick Fix List feature
 vim.keymap.set('n', '<leader>c<leader>', ':cnext', { desc = ' Next QFL element' })
-vim.keymap.set('n', '<C-j>', '<C-d>', { desc = 'Page Down' })
+
+-- Load hunks in QuickFixList
+vim.keymap.set('n', '<leader>hq', ':GitGutterQuickFix<CR>:copen<CR>', { desc = 'Load hunks in QFL' })
+
+-- open terminal
+vim.keymap.set('n', '<leader>ct', ':split<CR>:term<CR>:resize -10<CR>i', { desc = 'Open terminal' })
 
 -- Diagram mode
 
