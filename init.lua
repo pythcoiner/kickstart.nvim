@@ -273,6 +273,9 @@ vim.keymap.set('n', '<leader>c<leader>', ':cnext', { desc = ' Next QFL element' 
 -- Load hunks in QuickFixList
 vim.keymap.set('n', '<leader>hq', ':GitGutterQuickFix<CR>:copen<CR>', { desc = 'Load hunks in QFL' })
 
+-- Open Gvdiff
+vim.keymap.set('n', '<leader>hd', ':Gvdiff master<CR>', { desc = 'Split diff' })
+
 -- open terminal
 vim.keymap.set('n', '<leader>ct', ':split<CR>:term<CR>:resize -10<CR>i', { desc = 'Open terminal' })
 
