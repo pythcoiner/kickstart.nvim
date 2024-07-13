@@ -372,6 +372,13 @@ vim.api.nvim_set_keymap('n', '<leader>rc', ':lua run_cargo_clippy()<CR>', { nore
 vim.api.nvim_set_keymap('n', '<leader>rr', ':lua run_cargo_run()<CR>', { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<leader>rf', ':RustFmt<CR>)', { noremap = true, silent = true })
 
+-- debugger
+function StartDebug()
+  local dap = require 'dap'
+  dap.continue()
+end
+vim.keymap.set('n', '<leader>bs', StartDebug, { desc = 'Start debugging session' })
+
 -- [[ AutoSave feature ]]
 -- Counter for auto-save events
 Auto_save_counter = 0
