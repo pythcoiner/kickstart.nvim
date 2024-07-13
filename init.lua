@@ -372,12 +372,6 @@ vim.api.nvim_set_keymap('n', '<leader>rc', ':lua run_cargo_clippy()<CR>', { nore
 vim.api.nvim_set_keymap('n', '<leader>rr', ':lua run_cargo_run()<CR>', { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<leader>rf', ':RustFmt<CR>)', { noremap = true, silent = true })
 
--- debugger
-function StartDebug()
-  local dap = require 'dap'
-  dap.continue()
-end
-vim.keymap.set('n', '<leader>bs', StartDebug, { desc = 'Start debugging session' })
 
 -- [[ AutoSave feature ]]
 -- Counter for auto-save events
@@ -439,10 +433,9 @@ vim.api.nvim_create_autocmd('TextYankPost', {
 
 -- make
 vim.o.makeprg = 'make clean && make'
-vim.o.errorformat = "%f:%l:%m"
+vim.o.errorformat = '%f:%l:%m'
 
-vim.api.nvim_set_keymap('n', '<leader>mm', ':make<CR>:copen<CR>', { desc = 'make'})
-
+vim.api.nvim_set_keymap('n', '<leader>mm', ':make<CR>:copen<CR>', { desc = 'make' })
 
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
@@ -466,62 +459,6 @@ require('lazy').setup({
       vim.g.db_ui_winwidth = 30
     end,
   },
-
-  -- debugging
-  'nvim-lua/plenary.nvim',
-  {
-    'mfussenegger/nvim-dap',
-    config = function()
-      local dap = require 'dap'
-
-      -- GDB adapter using the custom script
-      dap.adapters.gdb = {
-        type = 'executable',
-        command = function()
-          return vim.fn.getcwd() .. '/build/debug.sh' -- Path to your custom script
-        end,
-        name = 'gdb',
-      }
-
-      -- Configurations for C/C++
-      dap.configurations.cpp = {
-        {
-          name = 'Launch file',
-          type = 'gdb',
-          request = 'launch',
-          program = function()
-            return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
-          end,
-          cwd = '${workspaceFolder}',
-          stopOnEntry = false,
-          args = {},
-        },
-      }
-
-      -- Use the same configuration for C
-      dap.configurations.c = dap.configurations.cpp
-
-      -- Configurations for Rust
-      dap.configurations.rust = {
-        {
-          name = 'Launch',
-          type = 'gdb',
-          request = 'launch',
-          program = function()
-            return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
-          end,
-          cwd = '${workspaceFolder}',
-          stopOnEntry = false,
-          args = {},
-          runInTerminal = false,
-        },
-      }
-
-      -- Define symbols for breakpoints
-      vim.fn.sign_define('DapBreakpoint', { text = '🔴', texthl = '', linehl = '', numhl = '' })
-    end,
-  },
-  'rcarriga/nvim-dap-ui',
 
   -- Ascii diagram
   'pythcoiner/venn.nvim',
