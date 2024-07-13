@@ -191,20 +191,26 @@ function MaybeExcludeTodo()
 end
 
 _G.todo = 0
-function LoadTodo()
-  local cwd = vim.fn.getcwd()
-  local todo_file = cwd .. '/.todo'
-
+function MaybeLoadTodo()
   if _G.todo == 1 then
     vim.cmd 'copen' -- Open the quickfix window
     return
   end
+
+  LoadTodo()
+end
+
+function LoadTodo()
+  local cwd = vim.fn.getcwd()
+  local todo_file = cwd .. '/.todo'
 
   -- Check if the .todo file exists
   if vim.fn.filereadable(todo_file) == 0 then
     vim.fn.setqflist({}, 'r', { title = '.todo' })
     vim.cmd 'copen' -- Open the quickfix window
     print '.todo file does not exist.'
+    -- open a new empty QuickFixList
+    vim.cmd 'cexpr []'
     return
   end
 
@@ -365,6 +371,7 @@ end
 vim.api.nvim_set_keymap('n', '<leader>rc', ':lua run_cargo_clippy()<CR>', { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<leader>rr', ':lua run_cargo_run()<CR>', { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<leader>rf', ':RustFmt<CR>)', { noremap = true, silent = true })
+
 -- [[ AutoSave feature ]]
 -- Counter for auto-save events
 Auto_save_counter = 0
@@ -439,12 +446,9 @@ if not vim.loop.fs_stat(lazypath) then
 end ---@diagnostic disable-next-line: undefined-field
 vim.opt.rtp:prepend(lazypath)
 
--- NOTE: Here is where you install your plugins.
-
 require('lazy').setup({
   'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
 
-  -- Ascii diagram
   -- DB tool
   'tpope/vim-dadbod',
   {
@@ -512,6 +516,7 @@ require('lazy').setup({
   },
   'rcarriga/nvim-dap-ui',
 
+  -- Ascii diagram
   'pythcoiner/venn.nvim',
 
   -- Git diffs
