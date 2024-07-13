@@ -347,6 +347,9 @@ vim.api.nvim_set_keymap('x', '<Leader>r', ':lua ReplaceWithSpaces()<CR>', { nore
 -- Toggle file overview
 vim.keymap.set('n', '<leader>ll', ':SymbolsOutline<CR>', { desc = 'File Overview' })
 
+-- DataBase ui
+vim.keymap.set('n', '<leader>db', ':DBUIToggle<CR>', { desc = 'DB UI Tool' })
+
 -- [[ NVimTree keymaps ]]
 vim.api.nvim_set_keymap('n', '<leader>aa', ':NvimTreeToggle<CR>', { noremap = true, silent = true })
 
@@ -432,10 +435,76 @@ vim.opt.rtp:prepend(lazypath)
 -- NOTE: Here is where you install your plugins.
 
 require('lazy').setup({
-  -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
   'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
 
   -- Ascii diagram
+  -- DB tool
+  'tpope/vim-dadbod',
+  {
+    'kristijanhusak/vim-dadbod-ui',
+    config = function()
+      -- Enable auto-execute query for table helpers in vim-dadbod-ui
+      vim.g.db_ui_auto_execute_table_helpers = 1
+      vim.g.db_ui_winwidth = 30
+    end,
+  },
+
+  -- debugging
+  'nvim-lua/plenary.nvim',
+  {
+    'mfussenegger/nvim-dap',
+    config = function()
+      local dap = require 'dap'
+
+      -- GDB adapter using the custom script
+      dap.adapters.gdb = {
+        type = 'executable',
+        command = function()
+          return vim.fn.getcwd() .. '/build/debug.sh' -- Path to your custom script
+        end,
+        name = 'gdb',
+      }
+
+      -- Configurations for C/C++
+      dap.configurations.cpp = {
+        {
+          name = 'Launch file',
+          type = 'gdb',
+          request = 'launch',
+          program = function()
+            return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
+          end,
+          cwd = '${workspaceFolder}',
+          stopOnEntry = false,
+          args = {},
+        },
+      }
+
+      -- Use the same configuration for C
+      dap.configurations.c = dap.configurations.cpp
+
+      -- Configurations for Rust
+      dap.configurations.rust = {
+        {
+          name = 'Launch',
+          type = 'gdb',
+          request = 'launch',
+          program = function()
+            return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
+          end,
+          cwd = '${workspaceFolder}',
+          stopOnEntry = false,
+          args = {},
+          runInTerminal = false,
+        },
+      }
+
+      -- Define symbols for breakpoints
+      vim.fn.sign_define('DapBreakpoint', { text = '🔴', texthl = '', linehl = '', numhl = '' })
+    end,
+  },
+  'rcarriga/nvim-dap-ui',
+
   'pythcoiner/venn.nvim',
 
   -- Git diffs
