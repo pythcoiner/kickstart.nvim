@@ -423,6 +423,13 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   end,
 })
 
+-- make
+vim.o.makeprg = 'make clean && make'
+vim.o.errorformat = "%f:%l:%m"
+
+vim.api.nvim_set_keymap('n', '<leader>mm', ':make<CR>:copen<CR>', { desc = 'make'})
+
+
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
