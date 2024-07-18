@@ -372,7 +372,6 @@ vim.api.nvim_set_keymap('n', '<leader>rc', ':lua run_cargo_clippy()<CR>', { nore
 vim.api.nvim_set_keymap('n', '<leader>rr', ':lua run_cargo_run()<CR>', { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<leader>rf', ':RustFmt<CR>)', { noremap = true, silent = true })
 
-
 -- [[ AutoSave feature ]]
 -- Counter for auto-save events
 Auto_save_counter = 0
@@ -1097,6 +1096,16 @@ require('lazy').setup({
         return string.format('%2d/%2d:%-2d %3d%%%%', line, total_lines, vim.fn.col '.', percentage)
       end
 
+      -- Custom section to get the git branch name
+      statusline.section_git_branch = function()
+        local branch = vim.fn.system('git branch --show-current 2>/dev/null'):gsub('\n', '')
+        if branch == '' then
+          return ''
+        else
+          return string.format(' %s', branch)
+        end
+      end
+
       statusline.setup {
         content = {
           -- Define the active section
@@ -1104,6 +1113,7 @@ require('lazy').setup({
             -- Sections for active statusline
             local mode, mode_hl = MiniStatusline.section_mode { trunc_width = 120 }
             local git = MiniStatusline.section_git { trunc_width = 75 }
+            local branch = statusline.section_git_branch()
             local diagnostics = MiniStatusline.section_diagnostics { trunc_width = 75 }
             local filename = MiniStatusline.section_filename { trunc_width = 140 }
             local fileinfo = MiniStatusline.section_fileinfo { trunc_width = 120 }
@@ -1112,9 +1122,11 @@ require('lazy').setup({
             return MiniStatusline.combine_groups {
               { hl = mode_hl, strings = { mode } },
               { hl = 'MiniStatuslineDevinfo', strings = { git, diagnostics } },
-              { hl = mode_hl, strings = { location } },
+              { hl = 'MiniStatuslineFilename', strings = { branch } },
               '%<', -- Mark general truncate point
-              { hl = 'MiniStatuslineFilename', strings = { filename } },
+              { hl = 'MiniStatuslineFileinfo', strings = { filename } },
+              { hl = mode_hl, strings = { location } },
+              { hl = 'MiniStatuslineFilename', strings = { '' } },
               '%=', -- End left alignment
               { hl = 'MiniStatuslineFileinfo', strings = { fileinfo } },
             }
