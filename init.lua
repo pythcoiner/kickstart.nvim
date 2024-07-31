@@ -277,7 +277,16 @@ vim.keymap.set('n', '<C-k>', '<C-u>', { desc = 'Page Up' })
 vim.keymap.set('n', '<leader>c<leader>', ':cnext', { desc = ' Next QFL element' })
 
 -- Load hunks in QuickFixList
-vim.keymap.set('n', '<leader>hq', ':GitGutterQuickFix<CR>:copen<CR>', { desc = 'Load hunks in QFL' })
+vim.keymap.set('n', '<leader>hq', function()
+  vim.g.gitgutter_diff_base = 'master'
+  vim.cmd 'GitGutterQuickFix'
+  vim.cmd 'copen'
+end, { desc = 'Load hunks in QFL (diff_base = master)' })
+vim.keymap.set('n', '<leader>hw', function()
+  vim.g.gitgutter_diff_base = 'HEAD'
+  vim.cmd 'GitGutterQuickFix'
+  vim.cmd 'copen'
+end, { desc = 'Load hunks in QFL (diff_base = HEAD)' })
 
 -- Open Gvdiff
 vim.keymap.set('n', '<leader>hd', ':Gvdiff master<CR>', { desc = 'Split diff' })
