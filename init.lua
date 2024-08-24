@@ -619,6 +619,30 @@ require('lazy').setup({
       -- [[ Configure Telescope ]]
       -- See `:help telescope` and `:help telescope.setup()`
       require('telescope').setup {
+        defaults = {
+          layout_strategy = 'vertical',
+          layout_config = {
+            vertical = {
+              preview_height = 0.3,
+              preview_cutoff = 10,
+            },
+          },
+          -- -- Configure the layout strategy and layout options
+          -- layout_strategy = 'vertical', -- Change to 'vertical' if you prefer vertical layout
+          -- layout_config = {
+          --   horizontal = {
+          --     preview_width = 0.55, -- Adjust preview width in horizontal mode
+          --     results_width = 0.8,
+          --   },
+          --   vertical = {
+          --     preview_height = 0.4, -- Adjust preview height in vertical mode
+          --     mirror = false, -- Change to true if you want to mirror the layout
+          --   },
+          --   width = 0.87,
+          --   height = 0.80,
+          --   preview_cutoff = 120,
+          -- },
+        },
         extensions = {
           ['ui-select'] = {
             require('telescope.themes').get_dropdown(),
