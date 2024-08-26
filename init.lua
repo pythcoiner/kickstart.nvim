@@ -279,13 +279,22 @@ vim.keymap.set('n', '<leader>c<leader>', ':cnext', { desc = ' Next QFL element' 
 -- Load hunks in QuickFixList
 vim.keymap.set('n', '<leader>hq', function()
   vim.g.gitgutter_diff_base = 'master'
+  vim.g.gitgutter_relative_to = 'working_tree'
+  vim.cmd 'GitGutterDisable'
+  vim.cmd 'GitGutterEnable'
   vim.cmd 'GitGutterQuickFix'
   vim.cmd 'copen'
+  print 'diff from master'
 end, { desc = 'Load hunks in QFL (diff_base = master)' })
+
 vim.keymap.set('n', '<leader>hw', function()
   vim.g.gitgutter_diff_base = 'HEAD'
+  vim.g.gitgutter_relative_to = 'working_tree'
+  vim.cmd 'GitGutterDisable'
+  vim.cmd 'GitGutterEnable'
   vim.cmd 'GitGutterQuickFix'
   vim.cmd 'copen'
+  print 'diff from HEAD'
 end, { desc = 'Load hunks in QFL (diff_base = HEAD)' })
 
 -- Open Gvdiff
@@ -354,6 +363,7 @@ function DiagramMode()
     vim.api.nvim_echo({ { 'Diagram mode disabled!', 'Normal' } }, false, {})
   end
 end
+
 vim.keymap.set('n', '<leader>dd', DiagramMode, { desc = 'Disable diagram mode' })
 
 -- Map the function to a key combination in visual block mode
@@ -377,6 +387,7 @@ end
 function _G.run_cargo_clippy()
   vim.cmd '!cargo clippy'
 end
+
 vim.api.nvim_set_keymap('n', '<leader>rc', ':lua run_cargo_clippy()<CR>', { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<leader>rr', ':lua run_cargo_run()<CR>', { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<leader>rf', ':RustFmt<CR>)', { noremap = true, silent = true })
@@ -475,8 +486,9 @@ require('lazy').setup({
   {
     'airblade/vim-gitgutter',
     config = function()
-      -- Always show diffs relative to the master branch
+      -- Default show diffs against to the master branch
       vim.g.gitgutter_diff_base = 'master'
+      vim.g.gitgutter_relative_to = 'working_tree'
 
       -- Optional: Other configurations
       vim.g.gitgutter_enabled = 1
