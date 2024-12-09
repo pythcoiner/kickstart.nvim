@@ -305,8 +305,8 @@ end, { desc = 'Load hunks in QFL (diff_base = HEAD)' })
 -- Open Gvdiff
 vim.keymap.set('n', '<leader>hd', ':Gvdiff master<CR>', { desc = 'Split diff' })
 
--- open terminal
-vim.keymap.set('n', '<leader>ct', ':split<CR>:term<CR>:resize -10<CR>i', { desc = 'Open terminal' })
+-- toggle terminal
+vim.keymap.set('n', '<leader>ct', ':FTermToggle<cr>', { desc = 'Toggle terminal' })
 
 -- Diagram mode
 
@@ -587,6 +587,20 @@ require('lazy').setup({
   --
   -- "gc" to comment visual regions/lines
   { 'numToStr/Comment.nvim', opts = {} },
+
+  -- floating terminal
+  {
+    'numToStr/FTerm.nvim',
+    config = function()
+      vim.api.nvim_create_user_command('FTermToggle', require('FTerm').toggle, { bang = true })
+      require('FTerm').setup {
+        dimensions = {
+          height = 0.8,
+          width = 0.8,
+        },
+      }
+    end,
+  },
 
   { -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
