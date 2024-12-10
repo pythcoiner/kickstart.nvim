@@ -411,18 +411,7 @@ vim.keymap.set('n', '<leader>hh', ':ClangdSwitchSourceHeader<CR>', { desc = 'Cla
 vim.api.nvim_set_keymap('n', '<leader>aa', ':NvimTreeToggle<CR>', { noremap = true, silent = true })
 
 -- [[ Rust customs keymaps ]]
---
-function _G.run_cargo_run()
-  vim.cmd '!cargo run --release'
-end
-
-function _G.run_cargo_clippy()
-  vim.cmd '!cargo clippy'
-end
-
-vim.api.nvim_set_keymap('n', '<leader>rc', ':lua run_cargo_clippy()<CR>', { noremap = true, silent = true })
-vim.api.nvim_set_keymap('n', '<leader>rr', ':lua run_cargo_run()<CR>', { noremap = true, silent = true })
-vim.api.nvim_set_keymap('n', '<leader>rf', ':RustFmt<CR>)', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<leader>rr', ':RustRunnables<CR>', { noremap = true, silent = true })
 
 -- [[ AutoSave feature ]]
 -- Counter for auto-save events
@@ -950,6 +939,35 @@ require('lazy').setup({
       }
 
       require('rust-tools').setup {
+        tools = {
+          -- These apply to the default RustSetInlayHints command
+          inlay_hints = {
+            -- automatically set inlay hints (type hints)
+            -- default: true
+            auto = false,
+            -- Only show inlay hints for the current line
+            only_current_line = true,
+            -- whether to show parameter hints with the inlay hints or not
+            -- default: true
+            show_parameter_hints = true,
+            -- prefix for parameter hints
+            -- default: "<-"
+            parameter_hints_prefix = '<- ',
+            -- prefix for all the other hints (type, chaining)
+            -- default: "=>"
+            other_hints_prefix = '=> ',
+            -- whether to align to the length of the longest line in the file
+            max_len_align = false,
+            -- padding from the left if max_len_align is true
+            max_len_align_padding = 1,
+            -- whether to align to the extreme right or not
+            right_align = true,
+            -- padding from the right if right_align is true
+            right_align_padding = 15,
+            -- The color of the hints
+            highlight = 'Comment',
+          },
+        },
         server = {
           settings = {
 
