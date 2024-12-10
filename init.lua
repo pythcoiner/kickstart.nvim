@@ -853,6 +853,8 @@ require('lazy').setup({
             map('<leader>th', function()
               vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
             end, '[T]oggle Inlay [H]ints')
+            -- enable by default
+            vim.lsp.inlay_hint.enable(true)
           end
         end,
       })
