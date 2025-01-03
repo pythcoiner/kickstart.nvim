@@ -472,7 +472,7 @@ vim.api.nvim_create_autocmd('TextYankPost', {
 })
 
 -- make
-vim.o.makeprg = 'make clean && make'
+vim.o.makeprg = 'cd build && make'
 vim.o.errorformat = '%f:%l:%m'
 
 vim.api.nvim_set_keymap('n', '<leader>mm', ':make<CR>:copen<CR>', { desc = 'make' })
