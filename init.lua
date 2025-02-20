@@ -620,6 +620,12 @@ require('lazy').setup({
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
     config = function() -- This is the function that runs, AFTER loading
       require('which-key').setup()
+      local notify = vim.notify
+      vim.notify = function(msg, level, opts)
+        if not msg:match 'which%-key' then
+          notify(msg, level, opts)
+        end
+      end
 
       -- Document existing key chains
       require('which-key').register {
@@ -990,6 +996,8 @@ require('lazy').setup({
                   '-Dclippy::complexity',
                   '-Wclippy::perf',
                   -- '-Wclippy::pedantic',
+                  -- '-Wclippy::style',
+                  -- '-Wclippy::nursery',
                 },
               },
               procMacro = {
