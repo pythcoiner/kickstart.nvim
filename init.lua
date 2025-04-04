@@ -543,7 +543,7 @@ require('lazy').setup({
           code_actions = 'a',
         },
         lsp_blacklist = {},
-        symbol_blacklist = {},
+        symbol_blacklist = { 'Variable', 'EnumMember', 'Field' },
         symbols = {
           File = { icon = '', hl = 'TSURI' },
           Module = { icon = '', hl = 'TSNamespace' },
