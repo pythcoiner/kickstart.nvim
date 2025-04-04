@@ -745,6 +745,15 @@ require('lazy').setup({
     end,
   },
 
+  {
+    'nvim-flutter/flutter-tools.nvim',
+    lazy = false,
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+    },
+    config = true,
+  },
+
   { -- LSP Configuration & Plugins
     'neovim/nvim-lspconfig',
     dependencies = {
