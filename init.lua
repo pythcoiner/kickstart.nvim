@@ -500,40 +500,25 @@ require('lazy').setup({
     end,
   },
 
-  -- 'MunifTanjim/nui.nvim',
-  -- 'folke/trouble.nvim',
-  --
-  -- {
-  --   'jackMort/ChatGPT.nvim',
-  --   event = 'VeryLazy',
-  --   config = function()
-  --     require('chatgpt').setup()
-  --   end,
-  --   dependencies = {
-  --     'MunifTanjim/nui.nvim',
-  --     'nvim-lua/plenary.nvim',
-  --     'folke/trouble.nvim', -- optional
-  --     'nvim-telescope/telescope.nvim',
-  --   },
-  -- },
+  'MunifTanjim/nui.nvim',
+  'folke/trouble.nvim',
 
   {
-    'huynle/ogpt.nvim',
+    'jackMort/ChatGPT.nvim',
     event = 'VeryLazy',
-    opts = {
-      default_provider = 'openrouter',
-      providers = {
-        openrouter = {
-          enabled = true,
-          model = 'gpt-4',
-          api_host = 'https://openrouter.ai/api',
-          api_key = os.getenv 'OPENROUTER_API_KEY',
+    config = function()
+      require('chatgpt').setup {
+        api_host_cmd = 'echo https://openrouter.ai/api',
+        api_key_cmd = os.getenv 'OPENROUTER_API_KEY',
+        openai_params = {
+          model = 'openai/gpt-4',
         },
-      },
-    },
+      }
+    end,
     dependencies = {
       'MunifTanjim/nui.nvim',
       'nvim-lua/plenary.nvim',
+      'folke/trouble.nvim', -- optional
       'nvim-telescope/telescope.nvim',
     },
   },
