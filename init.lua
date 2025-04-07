@@ -514,12 +514,33 @@ require('lazy').setup({
     config = function()
       local openrouter_host = 'https://openrouter.ai/api'
       local openrouter_key = os.getenv 'OPENROUTER_API_KEY' or ''
+      local selected_model = 'openai/gpt-4'
+
+      -- remove cached settings at startup
+      local function delete_chatgpt_cache()
+        local home = os.getenv 'HOME' or os.getenv 'USERPROFILE'
+        local chat_params_file = home .. '/' .. '.chatgpt-chat_completions-params.json'
+        local edit_params_file = home .. '/' .. '.chatgpt-edits-params.json'
+        print(edit_params_file)
+        os.remove(chat_params_file)
+        os.remove(edit_params_file)
+      end
+      delete_chatgpt_cache()
 
       require('chatgpt').setup {
+        edit_with_instructions = {
+          keymaps = {
+            use_output_as_input = '<C-a>',
+          },
+        },
         api_key_cmd = 'echo ' .. openrouter_key,
         api_host_cmd = 'echo ' .. openrouter_host,
         openai_params = {
-          model = 'openai/gpt-4',
+          model = selected_model,
+          max_tokens = 300,
+        },
+        openai_edit_params = {
+          model = selected_model,
         },
       }
     end,
