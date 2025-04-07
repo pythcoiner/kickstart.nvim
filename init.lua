@@ -500,6 +500,23 @@ require('lazy').setup({
     end,
   },
 
+  'MunifTanjim/nui.nvim',
+  'folke/trouble.nvim',
+
+  {
+    'jackMort/ChatGPT.nvim',
+    event = 'VeryLazy',
+    config = function()
+      require('chatgpt').setup()
+    end,
+    dependencies = {
+      'MunifTanjim/nui.nvim',
+      'nvim-lua/plenary.nvim',
+      'folke/trouble.nvim', -- optional
+      'nvim-telescope/telescope.nvim',
+    },
+  },
+
   -- Ascii diagram
   'pythcoiner/venn.nvim',
 
