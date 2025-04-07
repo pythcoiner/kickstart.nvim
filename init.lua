@@ -413,6 +413,11 @@ vim.api.nvim_set_keymap('n', '<leader>aa', ':NvimTreeToggle<CR>', { noremap = tr
 -- [[ Rust customs keymaps ]]
 vim.api.nvim_set_keymap('n', '<leader>rr', ':RustRunnables<CR>', { noremap = true, silent = true })
 
+--  ChatGPT.nvim bindings
+vim.keymap.set('v', '<leader>ge', ':<C-u>ChatGPTEditWithInstructions<CR>', { desc = 'ChatGPT Edit' })
+vim.keymap.set('n', '<leader>ge', ':ChatGPTEditWithInstructions<CR>', { desc = 'ChatGPT Edit' })
+vim.keymap.set('n', '<leader>gg', ':ChatGPT<CR>', { noremap = true, desc = 'ChatGPT' })
+
 -- [[ AutoSave feature ]]
 -- Counter for auto-save events
 Auto_save_counter = 0
@@ -507,9 +512,12 @@ require('lazy').setup({
     'jackMort/ChatGPT.nvim',
     event = 'VeryLazy',
     config = function()
+      local openrouter_host = 'https://openrouter.ai/api'
+      local openrouter_key = os.getenv 'OPENROUTER_API_KEY' or ''
+
       require('chatgpt').setup {
-        api_host_cmd = 'echo https://openrouter.ai/api',
-        api_key_cmd = os.getenv 'OPENROUTER_API_KEY',
+        api_key_cmd = 'echo ' .. openrouter_key,
+        api_host_cmd = 'echo ' .. openrouter_host,
         openai_params = {
           model = 'openai/gpt-4',
         },
