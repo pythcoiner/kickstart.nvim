@@ -1,4 +1,4 @@
--- Increase message history size
+--c ac aa Increase message history size
 -- increases the lines displayed w/ :messages
 vim.o.history = 1000
 
@@ -565,7 +565,7 @@ require('lazy').setup({
       provider = 'openai',
       openai = {
         endpoint = 'https://openrouter.ai/api/v1',
-        model = 'gpt-4o', -- your desired model (or use gpt-4o, etc.)
+        model = 'openai/gpt-4o-mini', -- your desired model (or use gpt-4o, etc.)
         timeout = 30000, -- Timeout in milliseconds, increase this for reasoning models
         temperature = 0,
         max_tokens = 8192, -- Increase this to include reasoning tokens (for reasoning models)
