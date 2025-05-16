@@ -302,6 +302,35 @@ vim.keymap.set('n', '<leader>hw', function()
   print 'diff from HEAD'
 end, { desc = 'Load hunks in QFL (diff_base = HEAD)' })
 
+vim.keymap.set('n', '<leader>he', function()
+  vim.g.gitgutter_diff_base = 'HEAD~1'
+  vim.g.gitgutter_relative_to = 'index'
+  vim.cmd 'GitGutterDisable'
+  vim.cmd 'GitGutterEnable'
+  vim.cmd 'GitGutterQuickFix'
+  vim.cmd 'copen'
+  print 'diff for last commit'
+end, { desc = 'Load hunks in QFL (last commit)' })
+
+vim.keymap.set('n', '<leader>hr', function()
+  vim.ui.input({ prompt = 'How many commits back? ' }, function(input)
+    local n = tonumber(input)
+    if not n then
+      print 'Invalid number'
+      return
+    end
+
+    local base = 'HEAD~' .. n
+    vim.g.gitgutter_diff_base = base
+    vim.g.gitgutter_relative_to = 'index'
+    vim.cmd 'GitGutterDisable'
+    vim.cmd 'GitGutterEnable'
+    vim.cmd 'GitGutterQuickFix'
+    vim.cmd 'copen'
+    print('diff for commit range ' .. base .. '..HEAD')
+  end)
+end, { desc = 'Load hunks in QFL (diff from HEAD~N)' })
+
 -- Open Gvdiff
 vim.keymap.set('n', '<leader>hd', ':Gvdiff master<CR>', { desc = 'Split diff' })
 
