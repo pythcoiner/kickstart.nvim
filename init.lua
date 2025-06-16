@@ -447,6 +447,20 @@ vim.keymap.set('v', '<leader>ge', ':ChatGPTEditWithInstructions<CR>', { desc = '
 vim.keymap.set('n', '<leader>ge', ':ChatGPTEditWithInstructions<CR>', { desc = 'ChatGPT Edit' })
 vim.keymap.set('n', '<leader>gg', ':ChatGPT<CR>', { noremap = true, desc = 'ChatGPT' })
 
+-- [[ Autoformat toggle]]
+_G.autoformat_enabled = true
+
+function _G.autoformat_toggle()
+  _G.autoformat_enabled = not _G.autoformat_enabled
+  if _G.autoformat_enabled then
+    print 'Autoformat enabled'
+  else
+    print 'Autoformat disabled'
+  end
+end
+
+vim.keymap.set('n', '<leader>ft', autoformat_toggle, { desc = 'Toggle autoformat' })
+
 -- [[ AutoSave feature ]]
 -- Counter for auto-save events
 Auto_save_counter = 0
@@ -1183,6 +1197,9 @@ require('lazy').setup({
     opts = {
       notify_on_error = false,
       format_on_save = function(bufnr)
+        if not _G.autoformat_enabled then
+          return
+        end
         -- Disable "format_on_save lsp_fallback" for languages that don't
         -- have a well standardized coding style. You can add additional
         -- languages here or re-enable it for the disabled ones.
