@@ -434,7 +434,7 @@ vim.keymap.set('n', '<leader>ll', ':SymbolsOutline<CR>', { desc = 'File Overview
 vim.keymap.set('n', '<leader>db', ':DBUIToggle<CR>', { desc = 'DB UI Tool' })
 
 -- C/C++ toggle between header/source
-vim.keymap.set('n', '<leader>hh', ':ClangdSwitchSourceHeader<CR>', { desc = 'Clang switch sources/header' })
+vim.keymap.set('n', '<leader>hh', ':LspClangdSwitchSourceHeader<CR>', { desc = 'Clang switch sources/header' })
 
 -- [[ NVimTree keymaps ]]
 vim.api.nvim_set_keymap('n', '<leader>aa', ':NvimTreeToggle<CR>', { noremap = true, silent = true })
