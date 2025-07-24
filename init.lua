@@ -442,6 +442,9 @@ vim.api.nvim_set_keymap('n', '<leader>aa', ':NvimTreeToggle<CR>', { noremap = tr
 -- [[ Rust customs keymaps ]]
 vim.api.nvim_set_keymap('n', '<leader>rr', ':RustRunnables<CR>', { noremap = true, silent = true })
 
+-- [[ Leap ]]
+vim.api.nvim_set_keymap('n', 'f', '<Plug>(leap)', { noremap = true, silent = true })
+
 -- [[ Autoformat toggle]]
 _G.autoformat_enabled = true
 
@@ -545,6 +548,9 @@ require('lazy').setup({
 
   'MunifTanjim/nui.nvim',
   'folke/trouble.nvim',
+
+  -- Leap (jump anywhere)
+  'ggandor/leap.nvim',
 
   -- Ascii diagram
   'pythcoiner/venn.nvim',
