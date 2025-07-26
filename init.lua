@@ -445,6 +445,13 @@ vim.api.nvim_set_keymap('n', '<leader>rr', ':RustRunnables<CR>', { noremap = tru
 -- [[ Leap ]]
 vim.api.nvim_set_keymap('n', 's', '<Plug>(leap)', { noremap = true, silent = true })
 
+-- [[ CodeCompanion ]]
+vim.api.nvim_set_keymap('n', '<leader>ac', ':CodeCompanionActions<CR>', { desc = 'CodeCompanionActions' })
+vim.api.nvim_set_keymap('n', '<leader>av', ':CodeCompanionChat Toggle<CR>', { desc = 'CodeCompanion Toggle' })
+vim.api.nvim_set_keymap('n', '<leader>ae', ':CodeCompanion #{buffer}', { desc = 'CodeCompanion inline' })
+vim.api.nvim_set_keymap('v', '<leader>ae', ':CodeCompanion #{buffer}', { desc = 'CodeCompanion inline' })
+vim.api.nvim_set_keymap('v', '<leader>ad', ':CodeCompanion #{buffer} write docstring and output ONLY the docstring<CR>', { desc = 'CodeCompanion docstring' })
+
 -- [[ Autoformat toggle]]
 _G.autoformat_enabled = true
 
@@ -567,6 +574,127 @@ require('lazy').setup({
       vim.g.gitgutter_enabled = 1
       vim.g.gitgutter_highlight_lines = 1
       -- vim.g.gitgutter_map_keys = 0  -- Disable default mappings
+    end,
+  },
+
+  'echasnovski/mini.diff',
+
+  -- CodeCompanion
+  {
+    'olimorris/codecompanion.nvim',
+    config = function()
+      require('codecompanion').setup {
+        display = {
+          diff = {
+            provider = 'mini_diff',
+          },
+        },
+        strategies = {
+          chat = {
+            adapter = 'openrouter',
+          },
+          inline = {
+            adapter = 'openrouter',
+          },
+        },
+        adapters = {
+          openrouter = function()
+            return require('codecompanion.adapters').extend('openai_compatible', {
+              env = {
+                url = 'https://openrouter.ai/api',
+                api_key = 'OPENROUTER_API_KEY',
+                chat_url = '/v1/chat/completions',
+              },
+              schema = {
+                model = {
+                  default = 'openai/gpt-4o-mini',
+                },
+              },
+            })
+          end,
+        },
+      }
+    end,
+    opts = {},
+    dependencies = {
+      'j-hui/fidget.nvim',
+      'echasnovski/mini.diff',
+      'nvim-lua/plenary.nvim',
+      'nvim-treesitter/nvim-treesitter',
+    },
+    init = function()
+      -- Spinner see https://github.com/olimorris/codecompanion.nvim/discussions/813#discussioncomment-12031954
+      local progress = require 'fidget.progress'
+
+      local M = {}
+
+      function M:init()
+        local group = vim.api.nvim_create_augroup('CodeCompanionFidgetHooks', {})
+
+        vim.api.nvim_create_autocmd({ 'User' }, {
+          pattern = 'CodeCompanionRequestStarted',
+          group = group,
+          callback = function(request)
+            local handle = M:create_progress_handle(request)
+            M:store_progress_handle(request.data.id, handle)
+          end,
+        })
+
+        vim.api.nvim_create_autocmd({ 'User' }, {
+          pattern = 'CodeCompanionRequestFinished',
+          group = group,
+          callback = function(request)
+            local handle = M:pop_progress_handle(request.data.id)
+            if handle then
+              M:report_exit_status(handle, request)
+              handle:finish()
+            end
+          end,
+        })
+      end
+
+      M.handles = {}
+
+      function M:store_progress_handle(id, handle)
+        M.handles[id] = handle
+      end
+
+      function M:pop_progress_handle(id)
+        local handle = M.handles[id]
+        M.handles[id] = nil
+        return handle
+      end
+
+      function M:create_progress_handle(request)
+        return progress.handle.create {
+          title = ' Requesting assistance (' .. request.data.strategy .. ')',
+          message = 'In progress...',
+          lsp_client = {
+            name = M:llm_role_title(request.data.adapter),
+          },
+        }
+      end
+
+      function M:llm_role_title(adapter)
+        local parts = {}
+        table.insert(parts, adapter.formatted_name)
+        if adapter.model and adapter.model ~= '' then
+          table.insert(parts, '(' .. adapter.model .. ')')
+        end
+        return table.concat(parts, ' ')
+      end
+
+      function M:report_exit_status(handle, request)
+        if request.data.status == 'success' then
+          handle.message = 'Completed'
+        elseif request.data.status == 'error' then
+          handle.message = ' Error'
+        else
+          handle.message = '󰜺 Cancelled'
+        end
+      end
+
+      M:init()
     end,
   },
 
