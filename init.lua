@@ -466,6 +466,49 @@ end
 
 vim.keymap.set('n', '<leader>ft', autoformat_toggle, { desc = 'Toggle autoformat' })
 
+-- [[ Break long lines ]]
+function _G.break_longs_lines()
+  local buf = vim.api.nvim_get_current_buf()
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local new_lines = {}
+  local max = 85
+
+  for _, line in ipairs(lines) do
+    line = line:gsub('%s+$', '')
+    if #line > max then
+      -- Split long line into chunks of `max` characters or less
+      local chunks = {}
+      local remaining = line
+      while #remaining > max do
+        -- Find a good break point (prioritize spaces)
+        local break_pos = max
+        for i = max, 1, -1 do
+          if remaining:sub(i, i) == ' ' then
+            break_pos = i - 1
+            break
+          end
+        end
+
+        table.insert(chunks, remaining:sub(1, break_pos))
+        remaining = remaining:sub(break_pos + 1):gsub('^ ', '')
+      end
+      table.insert(chunks, remaining)
+
+      -- Add all chunks to new_lines
+      for _, chunk in ipairs(chunks) do
+        table.insert(new_lines, chunk)
+      end
+    else
+      table.insert(new_lines, line)
+    end
+  end
+
+  -- Replace buffer content
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, new_lines)
+end
+
+vim.keymap.set('n', '<leader>bl', break_longs_lines, { desc = 'Break longs lines' })
+
 -- [[ AutoSave feature ]]
 -- Counter for auto-save events
 Auto_save_counter = 0
