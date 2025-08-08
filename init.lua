@@ -1211,15 +1211,16 @@ require('lazy').setup({
         server = {
           settings = {
 
+            -- see https://rust-analyzer.github.io/book/configuration.html
             ['rust-analyzer'] = {
               cargo = {
-                allFeatures = true,
-                loadOutDirsFromCheck = true,
-                runBuildScripts = true,
+                features = 'all',
+                noDeps = true, -- do no run rust-analyzer over dependencies
               },
               -- Add clippy lints for Rust.
-              checkOnSave = {
-                allFeatures = true,
+              checkOnSave = true,
+              check = {
+                features = 'all', -- here can disable check on features
                 command = 'clippy',
                 extraArgs = {
                   '--',
@@ -1237,6 +1238,13 @@ require('lazy').setup({
                 ignored = {
                   ['napi-derive'] = { 'napi' },
                   ['async-recursion'] = { 'async_recursion' },
+                },
+              },
+              completion = {
+                -- Show completions of private items and fields that are defined in the
+                -- current workspace even if they are not visible at the current position.
+                privateEditable = {
+                  enable = true,
                 },
               },
             },
