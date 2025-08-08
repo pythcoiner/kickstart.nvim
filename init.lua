@@ -650,7 +650,7 @@ require('lazy').setup({
               },
               schema = {
                 model = {
-                  default = 'openai/gpt-4o-mini',
+                  default = 'moonshotai/kimi-k2',
                 },
               },
             })
