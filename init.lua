@@ -573,6 +573,63 @@ vim.o.errorformat = '%f:%l:%m'
 
 vim.api.nvim_set_keymap('n', '<leader>mm', ':make<CR>:copen<CR>', { desc = 'make' })
 
+-- [[rust-analyzer config]]
+vim.g.rustaceanvim = {
+  -- Plugin configuration
+  tools = {},
+  -- LSP configuration
+  server = {
+    -- on_attach = function(client, bufnr)
+    --   -- you can also put keymaps in here
+    -- end,
+    default_settings = {
+      -- rust-analyzer language server configuration
+      ['rust-analyzer'] = {
+        cargo = {
+          features = 'all',
+          -- features = 'miniscript_12_3_5',
+          noDeps = true, -- do no run rust-analyzer over dependencies
+        },
+        -- Add clippy lints for Rust.
+        checkOnSave = true,
+        check = {
+          features = 'all', -- here can disable check on features
+          -- features = 'miniscript_12_3_5', -- here can disable check on features
+          command = 'clippy',
+          extraArgs = {
+            -- '--features miniscript_12_3_5',
+            '--',
+            '--no-deps',
+            '-Dclippy::correctness',
+            '-Dclippy::complexity',
+            '-Wclippy::perf',
+            -- '-Wclippy::pedantic',
+            -- '-Wclippy::style',
+            -- '-Wclippy::nursery',
+            -- '-Aclippy::missing_const_for_fn',
+          },
+        },
+        procMacro = {
+          enable = true,
+          ignored = {
+            ['napi-derive'] = { 'napi' },
+            ['async-recursion'] = { 'async_recursion' },
+          },
+        },
+        completion = {
+          -- Show completions of private items and fields that are defined in the
+          -- current workspace even if they are not visible at the current position.
+          privateEditable = {
+            enable = true,
+          },
+        },
+      },
+    },
+  },
+  -- DAP configuration
+  dap = {},
+}
+
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
@@ -987,7 +1044,14 @@ require('lazy').setup({
 
       -- [[ rust-tools used in order to have clipy lints
       -- it uses rust_analyzer under the hod, it can be installed using 'rustup component add rust-analyser' ]]
-      { 'simrat39/rust-tools.nvim' },
+
+      -- [[rustaceanvim]] replace archived simrat39/rust-tools.nvim
+      {
+        'mrcjkb/rustaceanvim',
+        version = '^6', -- Recommended
+        lazy = false, -- This plugin is already lazy
+      },
+
       -- Useful status updates for LSP.
       -- NOTE: `opts = {}` is the same as calling `require('fidget').setup({})`
       { 'j-hui/fidget.nvim', opts = {} },
@@ -1175,80 +1239,6 @@ require('lazy').setup({
             server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
             require('lspconfig')[server_name].setup(server)
           end,
-        },
-      }
-
-      require('rust-tools').setup {
-        tools = {
-          -- These apply to the default RustSetInlayHints command
-          inlay_hints = {
-            -- automatically set inlay hints (type hints)
-            -- default: true
-            auto = false,
-            -- Only show inlay hints for the current line
-            only_current_line = true,
-            -- whether to show parameter hints with the inlay hints or not
-            -- default: true
-            show_parameter_hints = true,
-            -- prefix for parameter hints
-            -- default: "<-"
-            parameter_hints_prefix = '<- ',
-            -- prefix for all the other hints (type, chaining)
-            -- default: "=>"
-            other_hints_prefix = '=> ',
-            -- whether to align to the length of the longest line in the file
-            max_len_align = false,
-            -- padding from the left if max_len_align is true
-            max_len_align_padding = 1,
-            -- whether to align to the extreme right or not
-            right_align = true,
-            -- padding from the right if right_align is true
-            right_align_padding = 15,
-            -- The color of the hints
-            highlight = 'Comment',
-          },
-        },
-        server = {
-          settings = {
-
-            -- see https://rust-analyzer.github.io/book/configuration.html
-            ['rust-analyzer'] = {
-              cargo = {
-                features = 'all',
-                noDeps = true, -- do no run rust-analyzer over dependencies
-              },
-              -- Add clippy lints for Rust.
-              checkOnSave = true,
-              check = {
-                features = 'all', -- here can disable check on features
-                command = 'clippy',
-                extraArgs = {
-                  '--',
-                  '--no-deps',
-                  '-Dclippy::correctness',
-                  '-Dclippy::complexity',
-                  '-Wclippy::perf',
-                  -- '-Wclippy::pedantic',
-                  -- '-Wclippy::style',
-                  -- '-Wclippy::nursery',
-                },
-              },
-              procMacro = {
-                enable = true,
-                ignored = {
-                  ['napi-derive'] = { 'napi' },
-                  ['async-recursion'] = { 'async_recursion' },
-                },
-              },
-              completion = {
-                -- Show completions of private items and fields that are defined in the
-                -- current workspace even if they are not visible at the current position.
-                privateEditable = {
-                  enable = true,
-                },
-              },
-            },
-          },
         },
       }
     end,
