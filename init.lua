@@ -661,6 +661,14 @@ vim.o.errorformat = '%f:%l:%m'
 
 vim.api.nvim_set_keymap('n', '<leader>mm', ':make<CR>:copen<CR>', { desc = 'make' })
 
+-- [[Flutter]]
+vim.api.nvim_set_keymap('n', '<leader>fr', ':FlutterRun<CR>', { desc = '[F]lutter [R]un' })
+vim.api.nvim_set_keymap('n', '<leader>fq', ':FlutterQuit<CR>', { desc = '[F]lutter [Q]uit' })
+vim.api.nvim_set_keymap('n', '<leader>fe', ':FlutterEmulators<CR>', { desc = '[F]lutter [E]mulators' })
+vim.api.nvim_set_keymap('n', '<leader>fd', ':FlutterDevices<CR>', { desc = '[F]lutter [D]evices' })
+vim.api.nvim_set_keymap('n', '<leader>fl', ':FlutterLogToggle<CR>', { desc = '[F]lutter [L]og toggle' })
+vim.api.nvim_set_keymap('n', '<leader>fc', ':FlutterLogClear<CR>', { desc = '[F]lutter log [C]lear' })
+
 -- [[rust-analyzer config]]
 vim.g.rustaceanvim = {
   -- Plugin configuration
