@@ -562,13 +562,15 @@ function _G.break_longs_lines()
   local max = 85
 
   for _, line in ipairs(lines) do
+    local trail = line:match '(%s+)$' or ''
+    -- preserve ≥2 trailing spaces as-is
+    trail = (#trail >= 2) and trail or ''
     line = line:gsub('%s+$', '')
+
     if #line > max then
-      -- Split long line into chunks of `max` characters or less
       local chunks = {}
       local remaining = line
       while #remaining > max do
-        -- Find a good break point (prioritize spaces)
         local break_pos = max
         for i = max, 1, -1 do
           if remaining:sub(i, i) == ' ' then
@@ -576,22 +578,24 @@ function _G.break_longs_lines()
             break
           end
         end
-
         table.insert(chunks, remaining:sub(1, break_pos))
         remaining = remaining:sub(break_pos + 1):gsub('^ ', '')
       end
       table.insert(chunks, remaining)
 
-      -- Add all chunks to new_lines
-      for _, chunk in ipairs(chunks) do
-        table.insert(new_lines, chunk)
+      for i, chunk in ipairs(chunks) do
+        -- put ≥2‐space trailer only on last chunk
+        if i == #chunks then
+          table.insert(new_lines, chunk .. trail)
+        else
+          table.insert(new_lines, chunk)
+        end
       end
     else
-      table.insert(new_lines, line)
+      table.insert(new_lines, line .. trail)
     end
   end
 
-  -- Replace buffer content
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, new_lines)
 end
 
@@ -668,6 +672,7 @@ vim.api.nvim_set_keymap('n', '<leader>fe', ':FlutterEmulators<CR>', { desc = '[F
 vim.api.nvim_set_keymap('n', '<leader>fd', ':FlutterDevices<CR>', { desc = '[F]lutter [D]evices' })
 vim.api.nvim_set_keymap('n', '<leader>fl', ':FlutterLogToggle<CR>', { desc = '[F]lutter [L]og toggle' })
 vim.api.nvim_set_keymap('n', '<leader>fc', ':FlutterLogClear<CR>', { desc = '[F]lutter log [C]lear' })
+vim.api.nvim_set_keymap('n', '<leader>lk', ':FlutterOutlineToggle<CR>', { desc = 'Flutter Outline Toggle' })
 
 -- [[rust-analyzer config]]
 vim.g.rustaceanvim = {
@@ -803,7 +808,9 @@ require('lazy').setup({
               },
               schema = {
                 model = {
-                  default = 'moonshotai/kimi-k2',
+                  default = 'moonshotai/kimi-k2', -- programming -not bad-
+                  -- default = 'x-ai/grok-code-fast-1', -- programming expensive
+                  -- default = 'openai/gpt-oss-120b', -- review
                 },
               },
             })
