@@ -687,14 +687,14 @@ vim.g.rustaceanvim = {
       -- rust-analyzer language server configuration
       ['rust-analyzer'] = {
         cargo = {
-          features = 'all',
+          features = 'default',
           -- features = 'miniscript_12_3_5',
           noDeps = true, -- do no run rust-analyzer over dependencies
         },
         -- Add clippy lints for Rust.
         checkOnSave = true,
         check = {
-          features = 'all', -- here can disable check on features
+          features = 'default',
           -- features = 'miniscript_12_3_5', -- here can disable check on features
           command = 'clippy',
           extraArgs = {
