@@ -77,6 +77,29 @@ vim.opt.cursorline = true
 -- Minimal number of screen lines to keep above and below the cursor.
 vim.opt.scrolloff = 10
 
+-- width delimiter
+local colorcolumn_rules = {
+  python = '',
+  rust = '',
+  go = '',
+  markdown = '85',
+  text = '85',
+  ['*'] = '',
+}
+
+for ft, cc in pairs(colorcolumn_rules) do
+  if ft == '*' then
+    vim.opt.colorcolumn = cc
+  else
+    vim.api.nvim_create_autocmd('FileType', {
+      pattern = ft,
+      callback = function()
+        vim.opt_local.colorcolumn = cc
+      end,
+    })
+  end
+end
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
@@ -808,7 +831,8 @@ require('lazy').setup({
               },
               schema = {
                 model = {
-                  default = 'moonshotai/kimi-k2', -- programming -not bad-
+                  -- default = 'moonshotai/kimi-k2', -- programming -not bad-
+                  default = 'anthropic/claude-sonnet-4.5', -- programming VERY expensive
                   -- default = 'x-ai/grok-code-fast-1', -- programming expensive
                   -- default = 'openai/gpt-oss-120b', -- review
                 },
