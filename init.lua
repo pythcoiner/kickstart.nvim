@@ -270,9 +270,18 @@ function SaveTodo()
 end
 
 vim.keymap.set('n', '<leader>cx', AddCommentToQFList, { noremap = true, silent = true, desc = 'Add entry to QuickFixList' })
-vim.keymap.set('n', '<leader>co', LoadTodo, { desc = 'Open QuickFixList' })
+vim.keymap.set('n', '<leader>co', ':copen<CR>', { desc = 'Open QuickFixList' })
+vim.keymap.set('n', '<leader>cp', LoadTodo, { desc = 'Open Todo' })
 vim.keymap.set('n', '<leader>cd', RemoveQFEntry, { desc = 'Remove QuickFixList entry' })
 vim.keymap.set('n', '<leader>cc', ':ccl<CR>', { desc = 'Close QuickFixList' })
+
+-- Close QFL after jumping
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'qf',
+  callback = function()
+    vim.keymap.set('n', '<CR>', '<CR>:ccl<CR>', { buffer = true, silent = true })
+  end
+})
 
 -- Page Up/Down
 vim.keymap.set('n', '<C-j>', '<C-d>', { desc = 'Page Down' })
