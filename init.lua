@@ -313,23 +313,39 @@ vim.keymap.set('n', '<leader>he', function()
 end, { desc = 'Load hunks in QFL (last commit)' })
 
 vim.keymap.set('n', '<leader>hr', function()
-  vim.ui.input({ prompt = 'How many commits back? ' }, function(input)
-    local n = tonumber(input)
-    if not n then
-      print 'Invalid number'
-      return
-    end
+  -- Check for uncommitted changes
+  local status = vim.fn.system('git status --porcelain')
+  if status ~= '' then
+    vim.notify('Uncommitted changes detected. Commit or stash before reviewing.', vim.log.levels.ERROR)
+    return
+  end
 
-    local base = 'HEAD~' .. n
-    vim.g.gitgutter_diff_base = base
-    vim.g.gitgutter_relative_to = 'index'
-    vim.cmd 'GitGutterDisable'
-    vim.cmd 'GitGutterEnable'
-    vim.cmd 'GitGutterQuickFix'
-    vim.cmd 'copen'
-    print('diff for commit range ' .. base .. '..HEAD')
-  end)
-end, { desc = 'Load hunks in QFL (diff from HEAD~N)' })
+  -- Restore previous HEAD if stored
+  if vim.g.review_previous_head then
+    vim.cmd('Git checkout ' .. vim.g.review_previous_head)
+    vim.g.review_previous_head = nil
+  end
+
+  require('commit-picker').open({
+    callback = function(hashes)
+      local oldest = hashes[#hashes]
+      local newest = hashes[1]
+      -- Store current HEAD before checkout
+      local head = vim.fn.system('git rev-parse HEAD'):gsub('%s+', '')
+      vim.g.review_previous_head = head
+      -- Checkout newest selected commit
+      vim.cmd('Git checkout ' .. newest)
+      -- Set diff base to parent of oldest
+      vim.g.gitgutter_diff_base = oldest .. '^'
+      vim.g.gitgutter_relative_to = 'index'
+      vim.cmd 'GitGutterDisable'
+      vim.cmd 'GitGutterEnable'
+      vim.cmd 'GitGutterQuickFix'
+      vim.cmd 'copen'
+      print('reviewing ' .. oldest .. '^..' .. newest)
+    end
+  })
+end, { desc = 'Load hunks in QFL (pick commit)' })
 
 -- Open Gvdiff
 vim.keymap.set('n', '<leader>hd', ':Gvdiff master<CR>', { desc = 'Split diff' })
