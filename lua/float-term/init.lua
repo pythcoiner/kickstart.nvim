@@ -34,6 +34,7 @@ local function open(position)
     border = 'rounded',
   })
   vim.wo[state.win].winblend = position == 'right' and 30 or 0
+  vim.wo[state.win].winhighlight = 'NormalFloat:Normal'
   state.position = position
 
   -- Start terminal if buffer is empty

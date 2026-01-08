@@ -38,14 +38,6 @@ local function render()
   vim.bo[state.buf].modifiable = true
   vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
   vim.bo[state.buf].modifiable = false
-
-  -- Highlight selected lines
-  vim.api.nvim_buf_clear_namespace(state.buf, -1, 0, -1)
-  for i, commit in ipairs(state.commits) do
-    if state.selected[commit.hash] then
-      vim.api.nvim_buf_add_highlight(state.buf, -1, 'Visual', i - 1, 0, -1)
-    end
-  end
 end
 
 local function move_cursor(delta)
@@ -159,6 +151,7 @@ function M.open(opts)
 
   vim.wo[state.win].cursorline = true
   vim.wo[state.win].wrap = false
+  vim.wo[state.win].winhighlight = 'NormalFloat:Normal'
 
   render()
   setup_keymaps()
