@@ -31,8 +31,12 @@ local function render()
 
   local lines = {}
   for i, commit in ipairs(state.commits) do
-    local prefix = state.selected[commit.hash] and '[x] ' or '[ ] '
-    lines[i] = prefix .. commit.line
+    if state.multiselect then
+      local prefix = state.selected[commit.hash] and '[x] ' or '[ ] '
+      lines[i] = prefix .. commit.line
+    else
+      lines[i] = commit.line
+    end
   end
 
   vim.bo[state.buf].modifiable = true
@@ -111,7 +115,9 @@ local function setup_keymaps()
 
   vim.keymap.set('n', 'j', function() move_cursor(1) end, opts)
   vim.keymap.set('n', 'k', function() move_cursor(-1) end, opts)
-  vim.keymap.set('n', '<Space>', toggle_selection, opts)
+  if state.multiselect then
+    vim.keymap.set('n', '<Space>', toggle_selection, opts)
+  end
   vim.keymap.set('n', '<CR>', confirm, opts)
   vim.keymap.set('n', 'q', close, opts)
   vim.keymap.set('n', '<Esc>', close, opts)
@@ -129,6 +135,8 @@ function M.open(opts)
 
   state.selected = {}
   state.callback = opts.callback
+  state.title = opts.title
+  state.multiselect = opts.multiselect ~= false -- default true
 
   -- Create buffer
   state.buf = vim.api.nvim_create_buf(false, true)
@@ -145,7 +153,7 @@ function M.open(opts)
     row = win_opts.row,
     style = 'minimal',
     border = 'rounded',
-    title = ' Commit Picker (space=select, enter=confirm, q=close) ',
+    title = ' ' .. (state.title or 'Commit Picker') .. (state.multiselect and ' (space=select, enter=confirm, q=close) ' or ' (enter=confirm, q=close) '),
     title_pos = 'center',
   })
 
@@ -158,7 +166,7 @@ function M.open(opts)
 end
 
 function M.setup()
-  vim.keymap.set('n', '<leader>cp', function() M.open() end, { desc = 'Commit picker' })
+  -- No default keymaps, used programmatically via M.open()
 end
 
 return M

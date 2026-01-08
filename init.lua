@@ -327,6 +327,7 @@ vim.keymap.set('n', '<leader>hr', function()
   end
 
   require('commit-picker').open({
+    title = 'Choose a commit range to review',
     callback = function(hashes)
       local oldest = hashes[#hashes]
       local newest = hashes[1]
