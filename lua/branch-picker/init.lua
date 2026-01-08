@@ -45,7 +45,7 @@ local function get_branches()
 end
 
 local function get_commits(branch, limit)
-  limit = limit or 50
+  limit = limit or 200
   local cmd = 'git log --oneline -n ' .. limit .. ' ' .. branch .. ' 2>/dev/null'
   local handle = io.popen(cmd)
   if not handle then return {} end
@@ -53,10 +53,12 @@ local function get_commits(branch, limit)
   handle:close()
 
   local commits = {}
+  local i = 0
   for line in result:gmatch('[^\n]+') do
     local hash, subject = line:match('^(%S+)%s+(.*)$')
     if hash then
-      table.insert(commits, { hash = hash, subject = subject, line = line })
+      table.insert(commits, { hash = hash, subject = subject, line = line, depth = i })
+      i = i + 1
     end
   end
   return commits
@@ -79,10 +81,20 @@ end
 local function render_commits()
   if not state.buf or not vim.api.nvim_buf_is_valid(state.buf) then return end
 
+  -- Calculate max width for depth column (right-aligned)
+  local max_depth = #state.commits - 1  -- 0-indexed, but 0 is hidden
+  local depth_width = #tostring(max_depth) + 1  -- +1 for the minus sign
+
   local lines = {}
   for i, commit in ipairs(state.commits) do
+    local depth_str
+    if commit.depth == 0 then
+      depth_str = string.rep(' ', depth_width + 1)  -- blank for HEAD
+    else
+      depth_str = string.format('%' .. depth_width .. 's ', '-' .. commit.depth)
+    end
     local prefix = state.selected_commits[commit.hash] and '[x] ' or '[ ] '
-    lines[i] = prefix .. commit.line
+    lines[i] = prefix .. depth_str .. commit.line
   end
 
   vim.bo[state.buf].modifiable = true
