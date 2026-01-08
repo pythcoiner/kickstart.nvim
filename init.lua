@@ -422,6 +422,13 @@ vim.keymap.set('n', '<leader>ga', function()
   })
 end, { desc = 'git add (pick files)' })
 
+vim.keymap.set('n', '<leader>gc', function()
+  vim.ui.input({ prompt = 'Commit message: ' }, function(msg)
+    if not msg or msg == '' then return end
+    vim.cmd('Git commit -m ' .. vim.fn.shellescape(msg))
+  end)
+end, { desc = 'git commit -m' })
+
 -- Open Gvdiff
 vim.keymap.set('n', '<leader>hd', ':Gvdiff master<CR>', { desc = 'Split diff' })
 
