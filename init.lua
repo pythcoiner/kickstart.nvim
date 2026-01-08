@@ -334,33 +334,6 @@ end, { desc = 'Load hunks in QFL (diff from HEAD~N)' })
 -- Open Gvdiff
 vim.keymap.set('n', '<leader>hd', ':Gvdiff master<CR>', { desc = 'Split diff' })
 
--- toggle terminal
-
-function FTermToggle()
-  require('FTerm').setup {
-    dimensions = {
-      height = 0.8,
-      width = 0.8,
-      x = 0.5,
-    },
-  }
-  require('FTerm').toggle()
-end
-
-function FTermToggleRight()
-  require('FTerm').setup {
-    dimensions = {
-      height = 0.8,
-      width = 0.5,
-      x = 0.95,
-    },
-  }
-  require('FTerm').toggle()
-end
-
-vim.keymap.set('n', '<leader>ct', FTermToggle, { desc = 'Toggle terminal' })
-vim.keymap.set('n', '<leader>cy', FTermToggleRight, { desc = 'Toggle terminal on the right' })
-
 -- Diagram mode
 
 -- replace chars by spaces in visual selected mode
