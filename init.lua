@@ -854,20 +854,6 @@ require('lazy').setup({
   -- "gc" to comment visual regions/lines
   { 'numToStr/Comment.nvim', opts = {} },
 
-  -- floating terminal
-  {
-    'numToStr/FTerm.nvim',
-    config = function()
-      vim.api.nvim_create_user_command('FTermToggle', require('FTerm').toggle, { bang = true })
-      require('FTerm').setup {
-        dimensions = {
-          height = 0.8,
-          width = 0.8,
-        },
-      }
-    end,
-  },
-
   { -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
     event = 'VimEnter', -- Sets the loading event to 'VimEnter'
@@ -1547,7 +1533,6 @@ require('lazy').setup({
   --
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
   --    For additional information, see `:help lazy.nvim-lazy.nvim-structuring-your-plugins`
-  -- { import = 'custom.plugins' },
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
@@ -1569,6 +1554,8 @@ require('lazy').setup({
     },
   },
 })
+
+require('float-term').setup()
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
