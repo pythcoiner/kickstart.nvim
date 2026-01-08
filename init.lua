@@ -408,6 +408,20 @@ vim.keymap.set('n', '<leader>gri', function()
   })
 end, { desc = 'git rebase -i (pick commit range)' })
 
+vim.keymap.set('n', '<leader>ga', function()
+  require('file-picker').open({
+    title = 'Select files to stage',
+    callback = function(paths)
+      if #paths == 0 then return end
+      local quoted = {}
+      for _, p in ipairs(paths) do
+        table.insert(quoted, vim.fn.shellescape(p))
+      end
+      vim.cmd('Git add ' .. table.concat(quoted, ' '))
+    end
+  })
+end, { desc = 'git add (pick files)' })
+
 -- Open Gvdiff
 vim.keymap.set('n', '<leader>hd', ':Gvdiff master<CR>', { desc = 'Split diff' })
 
@@ -1634,6 +1648,7 @@ require('lazy').setup({
 
 require('float-term').setup()
 require('commit-picker').setup()
+require('file-picker').setup()
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
