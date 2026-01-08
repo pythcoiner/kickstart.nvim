@@ -348,6 +348,66 @@ vim.keymap.set('n', '<leader>hr', function()
   })
 end, { desc = 'Load hunks in QFL (pick commit)' })
 
+vim.keymap.set('n', '<leader>gre', function()
+  -- Check for uncommitted changes
+  local status = vim.fn.system('git status --porcelain')
+  if status ~= '' then
+    vim.notify('Uncommitted changes detected. Commit or stash before rebasing.', vim.log.levels.ERROR)
+    return
+  end
+
+  require('commit-picker').open({
+    title = 'Select a commit to edit',
+    multiselect = false,
+    callback = function(hashes)
+      local hash = hashes[1]
+      if not hash then return end
+
+      -- Use GIT_SEQUENCE_EDITOR to automatically change 'pick' to 'edit' for the selected commit
+      local editor_script = string.format([[sed -i 's/^pick %s/edit %s/']], hash, hash)
+      local cmd = string.format('GIT_SEQUENCE_EDITOR="%s" git rebase -i %s^', editor_script, hash)
+
+      vim.fn.system(cmd)
+
+      local exit_code = vim.v.shell_error
+      if exit_code == 0 then
+        vim.notify('Rebase started. Edit the commit, then run :Git rebase --continue', vim.log.levels.INFO)
+        -- Reload all buffers to reflect the rebase state
+        vim.cmd 'checktime'
+      else
+        vim.notify('Failed to start rebase', vim.log.levels.ERROR)
+      end
+    end
+  })
+end, { desc = 'Interactive rebase to edit commit' })
+
+vim.keymap.set('n', '<leader>grc', function()
+  vim.cmd 'Git add .'
+  vim.cmd 'Git rebase --continue'
+end, { desc = 'git add . && rebase --continue' })
+
+vim.keymap.set('n', '<leader>gra', function()
+  vim.cmd 'Git rebase --abort'
+end, { desc = 'git rebase --abort' })
+
+vim.keymap.set('n', '<leader>gri', function()
+  local status = vim.fn.system('git status --porcelain')
+  if status ~= '' then
+    vim.notify('Uncommitted changes detected. Commit or stash before rebasing.', vim.log.levels.ERROR)
+    return
+  end
+
+  require('commit-picker').open({
+    title = 'Select oldest commit to rebase',
+    multiselect = false,
+    callback = function(hashes)
+      local hash = hashes[1]
+      if not hash then return end
+      vim.cmd('Git rebase -i ' .. hash .. '^')
+    end
+  })
+end, { desc = 'git rebase -i (pick commit range)' })
+
 -- Open Gvdiff
 vim.keymap.set('n', '<leader>hd', ':Gvdiff master<CR>', { desc = 'Split diff' })
 
