@@ -10,8 +10,13 @@ local function get_window_opts()
   return { width = width, height = height, col = col, row = row }
 end
 
-local function get_commits(limit)
-  local handle = io.popen('git log --oneline -n ' .. limit .. ' 2>/dev/null')
+local function get_commits(limit, branch)
+  local cmd = 'git log --oneline -n ' .. limit
+  if branch then
+    cmd = cmd .. ' ' .. branch
+  end
+  cmd = cmd .. ' 2>/dev/null'
+  local handle = io.popen(cmd)
   if not handle then return {} end
   local result = handle:read('*a')
   handle:close()
@@ -126,8 +131,9 @@ end
 function M.open(opts)
   opts = opts or {}
   local limit = opts.limit or 50
+  local branch = opts.branch
 
-  state.commits = get_commits(limit)
+  state.commits = get_commits(limit, branch)
   if #state.commits == 0 then
     vim.notify('No commits found', vim.log.levels.WARN)
     return

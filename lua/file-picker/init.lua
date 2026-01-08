@@ -20,7 +20,11 @@ local function get_files()
   for line in result:gmatch('[^\n]+') do
     local status, path = line:match('^(..)%s+(.+)$')
     if status and path then
-      table.insert(files, { status = status, path = path, line = line })
+      -- Only show files with unstaged changes (column 2 not space) or untracked (??)
+      local worktree_status = status:sub(2, 2)
+      if worktree_status ~= ' ' then
+        table.insert(files, { status = status, path = path, line = line })
+      end
     end
   end
   return files
@@ -149,8 +153,10 @@ function M.open(opts)
     row = win_opts.row,
     style = 'minimal',
     border = 'rounded',
-    title = ' ' .. (state.title or 'File Picker') .. (state.multiselect and ' (space=select, enter=confirm, q=close) ' or ' (enter=confirm, q=close) '),
+    title = ' ' .. (state.title or 'Files') .. ' ',
     title_pos = 'center',
+    footer = ' M=modified, A=added, D=deleted, R=renamed, ??=untracked ',
+    footer_pos = 'center',
   })
 
   vim.wo[state.win].cursorline = true

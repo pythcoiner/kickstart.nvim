@@ -429,35 +429,9 @@ vim.keymap.set('n', '<leader>gc', function()
   end)
 end, { desc = 'git commit -m' })
 
-vim.g.last_push = nil -- { remote, branch, local_branch }
-vim.keymap.set('n', '<leader>gp', function()
-  local current_branch = vim.fn.system('git branch --show-current'):gsub('%s+', '')
-  local has_prev = vim.g.last_push and vim.g.last_push.local_branch == current_branch
-
-  local remote_prompt = 'Remote: '
-  if has_prev then
-    remote_prompt = 'Remote (↑=' .. vim.g.last_push.remote .. '): '
-  end
-  vim.ui.input({ prompt = remote_prompt }, function(remote)
-    if remote == '' and has_prev then
-      remote = vim.g.last_push.remote
-    end
-    if not remote or remote == '' then return end
-
-    local branch_prompt = 'Branch: '
-    if has_prev then
-      branch_prompt = 'Branch (↑=' .. vim.g.last_push.branch .. '): '
-    end
-    vim.ui.input({ prompt = branch_prompt }, function(branch)
-      if branch == '' and has_prev then
-        branch = vim.g.last_push.branch
-      end
-      if not branch or branch == '' then return end
-      vim.g.last_push = { remote = remote, branch = branch, local_branch = current_branch }
-      vim.cmd('Git push ' .. remote .. ' ' .. branch)
-    end)
-  end)
-end, { desc = 'git push <remote> <branch>' })
+vim.keymap.set('n', '<leader>gb', function()
+  require('branch-picker').open()
+end, { desc = 'git branch picker' })
 
 -- Open Gvdiff
 vim.keymap.set('n', '<leader>hd', ':Gvdiff master<CR>', { desc = 'Split diff' })
@@ -1686,6 +1660,7 @@ require('lazy').setup({
 require('float-term').setup()
 require('commit-picker').setup()
 require('file-picker').setup()
+require('branch-picker').setup()
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
