@@ -442,6 +442,10 @@ vim.keymap.set('n', '<leader>gb', function()
   require('branch-picker').open()
 end, { desc = 'git branch picker' })
 
+vim.keymap.set('n', '<leader>grr', function()
+  require('remote-picker').open()
+end, { desc = 'git remote picker' })
+
 -- Open Gvdiff
 vim.keymap.set('n', '<leader>hd', ':Gvdiff master<CR>', { desc = 'Split diff' })
 
