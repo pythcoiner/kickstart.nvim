@@ -460,14 +460,59 @@ vim.keymap.set('n', '<leader>ga', function()
   }
 end, { desc = 'git add (pick files)' })
 
+-- git commit multilines
 vim.keymap.set('n', '<leader>gc', function()
-  vim.ui.input({ prompt = 'Commit message: ' }, function(msg)
-    if not msg or msg == '' then
-      return
-    end
-    vim.cmd('Git commit -m ' .. vim.fn.shellescape(msg))
-  end)
-end, { desc = 'git commit -m' })
+  local tmpfile = vim.fn.tempname()
+
+  -- Open floating terminal
+  local width = math.floor(vim.o.columns * 0.8)
+  local height = math.floor(vim.o.lines * 0.8)
+  local buf = vim.api.nvim_create_buf(false, true)
+  local win = vim.api.nvim_open_win(buf, true, {
+    relative = 'editor',
+    width = width,
+    height = height,
+    col = math.floor((vim.o.columns - width) / 2),
+    row = math.floor((vim.o.lines - height) / 2),
+    style = 'minimal',
+    border = 'rounded',
+    title = ' Commit message ',
+    title_pos = 'center',
+  })
+  vim.wo[win].winhighlight = 'NormalFloat:Normal'
+
+  -- Run vim on temp file
+  vim.fn.termopen('vim ' .. tmpfile, {
+    on_exit = function()
+      vim.api.nvim_win_close(win, true)
+      -- Read commit message from temp file
+      local f = io.open(tmpfile, 'r')
+      if f then
+        local msg = f:read('*a'):gsub('^%s*(.-)%s*$', '%1')
+        f:close()
+        if msg ~= '' then
+          -- Write trimmed message back and use -F to avoid escaping issues
+          local fw = io.open(tmpfile, 'w')
+          if fw then
+            fw:write(msg)
+            fw:close()
+          end
+          vim.fn.system('git commit -F ' .. tmpfile)
+          os.remove(tmpfile)
+          if vim.v.shell_error == 0 then
+            vim.notify('Committed', vim.log.levels.INFO)
+          else
+            vim.notify('Commit failed', vim.log.levels.ERROR)
+          end
+        else
+          os.remove(tmpfile)
+          vim.notify('Commit aborted: empty message', vim.log.levels.WARN)
+        end
+      end
+    end,
+  })
+  vim.cmd.startinsert()
+end, { desc = 'git commit' })
 
 vim.keymap.set('n', '<leader>gb', function()
   require('branch-picker').open()
