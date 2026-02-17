@@ -303,7 +303,7 @@ vim.api.nvim_create_autocmd('FileType', {
   pattern = 'qf',
   callback = function()
     vim.keymap.set('n', '<CR>', '<CR>:ccl<CR>', { buffer = true, silent = true })
-  end
+  end,
 })
 
 -- Page Up/Down
@@ -346,7 +346,7 @@ end, { desc = 'Load hunks in QFL (last commit)' })
 
 vim.keymap.set('n', '<leader>hr', function()
   -- Check for uncommitted changes
-  local status = vim.fn.system('git status --porcelain')
+  local status = vim.fn.system 'git status --porcelain'
   if status ~= '' then
     vim.notify('Uncommitted changes detected. Commit or stash before reviewing.', vim.log.levels.ERROR)
     return
@@ -358,7 +358,7 @@ vim.keymap.set('n', '<leader>hr', function()
     vim.g.review_previous_head = nil
   end
 
-  require('commit-picker').open({
+  require('commit-picker').open {
     title = 'Choose a commit range to review',
     callback = function(hashes)
       local oldest = hashes[#hashes]
@@ -376,24 +376,26 @@ vim.keymap.set('n', '<leader>hr', function()
       vim.cmd 'GitGutterQuickFix'
       vim.cmd 'copen'
       print('reviewing ' .. oldest .. '^..' .. newest)
-    end
-  })
+    end,
+  }
 end, { desc = 'Load hunks in QFL (pick commit)' })
 
 vim.keymap.set('n', '<leader>gre', function()
   -- Check for uncommitted changes
-  local status = vim.fn.system('git status --porcelain')
+  local status = vim.fn.system 'git status --porcelain'
   if status ~= '' then
     vim.notify('Uncommitted changes detected. Commit or stash before rebasing.', vim.log.levels.ERROR)
     return
   end
 
-  require('commit-picker').open({
+  require('commit-picker').open {
     title = 'Select a commit to edit',
     multiselect = false,
     callback = function(hashes)
       local hash = hashes[1]
-      if not hash then return end
+      if not hash then
+        return
+      end
 
       -- Use GIT_SEQUENCE_EDITOR to automatically change 'pick' to 'edit' for the selected commit
       local editor_script = string.format([[sed -i 's/^pick %s/edit %s/']], hash, hash)
@@ -409,8 +411,8 @@ vim.keymap.set('n', '<leader>gre', function()
       else
         vim.notify('Failed to start rebase', vim.log.levels.ERROR)
       end
-    end
-  })
+    end,
+  }
 end, { desc = 'Interactive rebase to edit commit' })
 
 vim.keymap.set('n', '<leader>grc', function()
@@ -423,40 +425,46 @@ vim.keymap.set('n', '<leader>gra', function()
 end, { desc = 'git rebase --abort' })
 
 vim.keymap.set('n', '<leader>gri', function()
-  local status = vim.fn.system('git status --porcelain')
+  local status = vim.fn.system 'git status --porcelain'
   if status ~= '' then
     vim.notify('Uncommitted changes detected. Commit or stash before rebasing.', vim.log.levels.ERROR)
     return
   end
 
-  require('commit-picker').open({
+  require('commit-picker').open {
     title = 'Select oldest commit to rebase',
     multiselect = false,
     callback = function(hashes)
       local hash = hashes[1]
-      if not hash then return end
+      if not hash then
+        return
+      end
       vim.cmd('Git rebase -i ' .. hash .. '^')
-    end
-  })
+    end,
+  }
 end, { desc = 'git rebase -i (pick commit range)' })
 
 vim.keymap.set('n', '<leader>ga', function()
-  require('file-picker').open({
+  require('file-picker').open {
     title = 'Select files to stage',
     callback = function(paths)
-      if #paths == 0 then return end
+      if #paths == 0 then
+        return
+      end
       local quoted = {}
       for _, p in ipairs(paths) do
         table.insert(quoted, vim.fn.shellescape(p))
       end
       vim.cmd('Git add ' .. table.concat(quoted, ' '))
-    end
-  })
+    end,
+  }
 end, { desc = 'git add (pick files)' })
 
 vim.keymap.set('n', '<leader>gc', function()
   vim.ui.input({ prompt = 'Commit message: ' }, function(msg)
-    if not msg or msg == '' then return end
+    if not msg or msg == '' then
+      return
+    end
     vim.cmd('Git commit -m ' .. vim.fn.shellescape(msg))
   end)
 end, { desc = 'git commit -m' })
@@ -468,6 +476,63 @@ end, { desc = 'git branch picker' })
 vim.keymap.set('n', '<leader>grr', function()
   require('remote-picker').open()
 end, { desc = 'git remote picker' })
+
+-- send a linux kernel patch by mail
+vim.keymap.set('n', '<leader>km', function()
+  -- Check we're in linux-next repo
+  local toplevel = vim.fn.system('git rev-parse --show-toplevel 2>/dev/null'):gsub('%s+', '')
+  if vim.v.shell_error ~= 0 or not toplevel:match 'linux%-next$' then
+    vim.notify('Not in linux-next repository', vim.log.levels.WARN)
+    return
+  end
+
+  require('commit-picker').open {
+    title = 'Select commits to send to maintainers',
+    multiselect = true,
+    callback = function(hashes)
+      if #hashes == 0 then
+        return
+      end
+
+      -- Build commit range for git send-email
+      -- For single commit: use that hash
+      -- For multiple commits: use oldest^..newest (hashes[1] is newest, hashes[#hashes] is oldest)
+      local range
+      if #hashes == 1 then
+        range = '-1 ' .. hashes[1]
+      else
+        range = hashes[#hashes] .. '^..' .. hashes[1]
+      end
+
+      local cmd = string.format("git send-email %s --to-cmd='%s/scripts/get_maintainer.pl --norolestats'", range, vim.fn.expand '~/linux-next')
+
+      -- Open floating terminal modal
+      local width = math.floor(vim.o.columns * 0.8)
+      local height = math.floor(vim.o.lines * 0.8)
+      local buf = vim.api.nvim_create_buf(false, true)
+      local win = vim.api.nvim_open_win(buf, true, {
+        relative = 'editor',
+        width = width,
+        height = height,
+        col = math.floor((vim.o.columns - width) / 2),
+        row = math.floor((vim.o.lines - height) / 2),
+        style = 'minimal',
+        border = 'rounded',
+        title = ' git send-email ',
+        title_pos = 'center',
+      })
+      vim.wo[win].winhighlight = 'NormalFloat:Normal'
+
+      -- Run command in terminal
+      vim.fn.termopen(cmd, {
+        on_exit = function()
+          vim.notify('git send-email finished', vim.log.levels.INFO)
+        end,
+      })
+      vim.cmd.startinsert()
+    end,
+  }
+end, { desc = 'kernel: send patches to maintainers' })
 
 -- Open Gvdiff
 vim.keymap.set('n', '<leader>hd', ':Gvdiff master<CR>', { desc = 'Split diff' })
@@ -781,7 +846,9 @@ require('lazy').setup({
   'folke/trouble.nvim',
 
   -- Leap (jump anywhere)
-  'ggandor/leap.nvim',
+  {
+    url = 'https://codeberg.org/andyg/leap.nvim',
+  },
 
   -- Ascii diagram
   'pythcoiner/venn.nvim',
