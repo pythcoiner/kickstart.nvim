@@ -37,16 +37,16 @@ vim.opt.showmode = false
 --  Remove this option if you want your OS clipboard to remain independent.
 --  See `:help 'clipboard'`
 -- Use OSC 52 for clipboard when in SSH session
-if os.getenv('SSH_TTY') then
+if os.getenv 'SSH_TTY' then
   vim.g.clipboard = {
     name = 'OSC 52',
     copy = {
-      ['+'] = require('vim.ui.clipboard.osc52').copy('+'),
-      ['*'] = require('vim.ui.clipboard.osc52').copy('*'),
+      ['+'] = require('vim.ui.clipboard.osc52').copy '+',
+      ['*'] = require('vim.ui.clipboard.osc52').copy '*',
     },
     paste = {
-      ['+'] = require('vim.ui.clipboard.osc52').paste('+'),
-      ['*'] = require('vim.ui.clipboard.osc52').paste('*'),
+      ['+'] = require('vim.ui.clipboard.osc52').paste '+',
+      ['*'] = require('vim.ui.clipboard.osc52').paste '*',
     },
   }
 end
@@ -834,14 +834,12 @@ vim.g.rustaceanvim = {
       -- rust-analyzer language server configuration
       ['rust-analyzer'] = {
         cargo = {
-          features = 'default',
           -- features = 'miniscript_12_3_5',
           noDeps = true, -- do no run rust-analyzer over dependencies
         },
         -- Add clippy lints for Rust.
         checkOnSave = true,
         check = {
-          features = 'default',
           -- features = 'miniscript_12_3_5', -- here can disable check on features
           command = 'clippy',
           extraArgs = {
