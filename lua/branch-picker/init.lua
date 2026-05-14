@@ -147,6 +147,7 @@ local function setup_commit_keymaps()
   pcall(vim.keymap.del, 'n', '<Esc>', { buffer = state.buf })
   pcall(vim.keymap.del, 'n', '<BS>', { buffer = state.buf })
   pcall(vim.keymap.del, 'n', 'p', { buffer = state.buf })
+  pcall(vim.keymap.del, 'n', 'c', { buffer = state.buf })
 
   vim.keymap.set('n', 'j', function() move_cursor(1) end, opts)
   vim.keymap.set('n', 'k', function() move_cursor(-1) end, opts)
@@ -198,6 +199,22 @@ local function setup_commit_keymaps()
 
     close()
     vim.cmd('Git cherry-pick ' .. commit.hash)
+  end, opts)
+
+  -- c: checkout focused commit (detached HEAD)
+  vim.keymap.set('n', 'c', function()
+    local status = vim.fn.system('git status --porcelain')
+    if status ~= '' then
+      vim.notify('Unstashed changes detected. Stash or commit before checkout.', vim.log.levels.ERROR)
+      return
+    end
+
+    local pos = vim.api.nvim_win_get_cursor(state.win)
+    local commit = state.commits[pos[1]]
+    if not commit then return end
+
+    close()
+    vim.cmd('Git checkout ' .. commit.hash)
   end, opts)
 
   -- d: drop selected commits from this branch
@@ -277,7 +294,7 @@ local function open_commit_picker(branch)
 
   render_commits()
   setup_commit_keymaps()
-  update_title(branch .. ' ([d]rop, [p]ick, [backspace]=back)')
+  update_title(branch .. ' ([d]rop, [p]ick, [c]heckout, [backspace]=back)')
 end
 
 function setup_branch_keymaps()
