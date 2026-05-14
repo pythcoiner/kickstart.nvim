@@ -102,6 +102,7 @@ local function close()
   state.commits = {}
   state.selected = {}
   state.callback = nil
+  state.on_back = nil
 end
 
 local function confirm()
@@ -136,6 +137,13 @@ local function setup_keymaps()
     vim.keymap.set('n', '<Space>', toggle_selection, opts)
   end
   vim.keymap.set('n', '<CR>', confirm, opts)
+  if state.on_back then
+    vim.keymap.set('n', '<BS>', function()
+      local cb = state.on_back
+      close()
+      cb()
+    end, opts)
+  end
   vim.keymap.set('n', 'q', close, opts)
   vim.keymap.set('n', '<Esc>', close, opts)
 end
@@ -153,6 +161,7 @@ function M.open(opts)
 
   state.selected = {}
   state.callback = opts.callback
+  state.on_back = opts.on_back
   state.title = opts.title
   state.multiselect = opts.multiselect ~= false -- default true
 
@@ -171,7 +180,10 @@ function M.open(opts)
     row = win_opts.row,
     style = 'minimal',
     border = 'rounded',
-    title = ' ' .. (state.title or 'Commit Picker') .. (state.multiselect and ' (space=select, enter=confirm, q=close) ' or ' (enter=confirm, q=close) '),
+    title = ' ' .. (state.title or 'Commit Picker')
+      .. (state.multiselect and ' (space=select, enter=confirm' or ' (enter=confirm')
+      .. (state.on_back and ', backspace=back' or '')
+      .. ', q=close) ',
     title_pos = 'center',
   })
 

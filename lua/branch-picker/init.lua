@@ -69,8 +69,12 @@ local function render_branches()
 
   local lines = {}
   for i, branch in ipairs(state.branches) do
-    local prefix = state.selected_branches[branch.name] and '[x] ' or '[ ] '
-    lines[i] = prefix .. branch.line
+    if state.pick_callback then
+      lines[i] = branch.line
+    else
+      local prefix = state.selected_branches[branch.name] and '[x] ' or '[ ] '
+      lines[i] = prefix .. branch.line
+    end
   end
 
   vim.bo[state.buf].modifiable = true
@@ -120,6 +124,8 @@ local function close()
   state.selected_branches = {}
   state.selected_commits = {}
   state.mode = nil
+  state.pick_callback = nil
+  state.pick_title = nil
 end
 
 local function update_title(title)
@@ -295,6 +301,42 @@ function setup_branch_keymaps()
 
   vim.keymap.set('n', 'j', function() move_cursor(1) end, opts)
   vim.keymap.set('n', 'k', function() move_cursor(-1) end, opts)
+
+  if state.pick_callback then
+    -- Pick mode: <CR> picks the branch tip; c drills into commit-picker.
+    vim.keymap.set('n', '<CR>', function()
+      local pos = vim.api.nvim_win_get_cursor(state.win)
+      local branch = state.branches[pos[1]]
+      if not branch then return end
+      local cb = state.pick_callback
+      close()
+      cb(branch.name)
+    end, opts)
+    vim.keymap.set('n', 'c', function()
+      local pos = vim.api.nvim_win_get_cursor(state.win)
+      local branch = state.branches[pos[1]]
+      if not branch then return end
+      local cb = state.pick_callback
+      local title = state.pick_title
+      close()
+      require('commit-picker').open {
+        title = 'Pick commit on ' .. branch.name,
+        branch = branch.name,
+        limit = 10000,
+        multiselect = false,
+        callback = function(hashes)
+          local hash = hashes[1]
+          if hash then cb(hash) end
+        end,
+        on_back = function()
+          M.open { title = title, callback = cb }
+        end,
+      }
+    end, opts)
+    vim.keymap.set('n', 'q', close, opts)
+    vim.keymap.set('n', '<Esc>', close, opts)
+    return
+  end
 
   -- Space: toggle select and move down
   vim.keymap.set('n', '<Space>', function()
@@ -494,11 +536,17 @@ function M.open(opts)
   state.selected_branches = {}
   state.selected_commits = {}
   state.mode = 'branch'
+  state.pick_callback = opts.callback
+  state.pick_title = opts.title
 
   -- Create buffer
   state.buf = vim.api.nvim_create_buf(false, true)
   vim.bo[state.buf].buftype = 'nofile'
   vim.bo[state.buf].bufhidden = 'wipe'
+
+  local title = state.pick_callback
+    and (' ' .. (state.pick_title or 'Pick a branch') .. ' (enter=branch tip, [c]=pick commit, q=close) ')
+    or ' Branches ([d]elete, [c]heckout, [n]ew, [r]ebase, [m]erge, [a]=fetch) '
 
   -- Open floating window
   local win_opts = get_window_opts()
@@ -510,7 +558,7 @@ function M.open(opts)
     row = win_opts.row,
     style = 'minimal',
     border = 'rounded',
-    title = ' Branches ([d]elete, [c]heckout, [n]ew, [r]ebase, [m]erge, [a]=fetch) ',
+    title = title,
     title_pos = 'center',
   })
 

@@ -359,40 +359,24 @@ vim.keymap.set('n', '<leader>he', function()
 end, { desc = 'Load hunks in QFL (last commit)' })
 
 vim.keymap.set('n', '<leader>hr', function()
-  -- Check for uncommitted changes
-  local status = vim.fn.system 'git status --porcelain'
-  if status ~= '' then
-    vim.notify('Uncommitted changes detected. Commit or stash before reviewing.', vim.log.levels.ERROR)
-    return
-  end
-
-  -- Restore previous HEAD if stored
-  if vim.g.review_previous_head then
-    vim.cmd('Git checkout ' .. vim.g.review_previous_head)
-    vim.g.review_previous_head = nil
-  end
-
-  require('commit-picker').open {
-    title = 'Choose a commit range to review',
-    callback = function(hashes)
-      local oldest = hashes[#hashes]
-      local newest = hashes[1]
-      -- Store current HEAD before checkout
-      local head = vim.fn.system('git rev-parse HEAD'):gsub('%s+', '')
-      vim.g.review_previous_head = head
-      -- Checkout newest selected commit
-      vim.cmd('Git checkout ' .. newest)
-      -- Set diff base to parent of oldest
-      vim.g.gitgutter_diff_base = oldest .. '^'
-      vim.g.gitgutter_relative_to = 'index'
+  local current = vim.fn.system('git branch --show-current'):gsub('%s+', '')
+  require('branch-picker').open {
+    title = 'Pick OLD branch (diff base; current = ' .. current .. ')',
+    callback = function(old)
+      if old == current then
+        vim.notify('Picked branch is the current branch', vim.log.levels.ERROR)
+        return
+      end
+      vim.g.gitgutter_diff_base = old
+      vim.g.gitgutter_relative_to = 'working_tree'
       vim.cmd 'GitGutterDisable'
       vim.cmd 'GitGutterEnable'
       vim.cmd 'GitGutterQuickFix'
       vim.cmd 'copen'
-      print('reviewing ' .. oldest .. '^..' .. newest)
+      print('diff against ' .. old)
     end,
   }
-end, { desc = 'Load hunks in QFL (pick commit)' })
+end, { desc = 'Load hunks in QFL (diff against picked branch)' })
 
 vim.keymap.set('n', '<leader>gre', function()
   -- Check for uncommitted changes
