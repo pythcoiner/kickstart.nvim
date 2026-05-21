@@ -646,9 +646,6 @@ vim.keymap.set('n', '<leader>dd', DiagramMode, { desc = 'Disable diagram mode' }
 -- Map the function to a key combination in visual block mode
 vim.api.nvim_set_keymap('x', '<Leader>r', ':lua ReplaceWithSpaces()<CR>', { noremap = true, silent = true })
 
--- Toggle file overview
-vim.keymap.set('n', '<leader>ll', ':SymbolsOutline<CR>', { desc = 'File Overview' })
-
 -- DataBase ui
 vim.keymap.set('n', '<leader>db', ':DBUIToggle<CR>', { desc = 'DB UI Tool' })
 
@@ -1035,31 +1032,51 @@ require('lazy').setup({
 
   -- Code structure overview
   {
-    'simrat39/symbols-outline.nvim',
-    config = function()
-      require('symbols-outline').setup {
-        highlight_hovered_item = true,
-        show_guides = true,
-        auto_preview = false,
+    'hedyhli/outline.nvim',
+    cmd = { 'Outline', 'OutlineOpen' },
+    keys = {
+      { '<leader>ll', '<cmd>Outline<CR>', desc = 'File Overview' },
+    },
+    opts = {
+      outline_window = {
         position = 'right',
         width = 25,
         auto_close = true,
-        show_numbers = false,
-        show_relative_numbers = false,
+        show_cursorline = true,
+      },
+      guides = { enabled = true },
+      symbol_folding = {
+        autofold_depth = false,
+      },
+      outline_items = {
         show_symbol_details = true,
-        preview_bg_highlight = 'Pmenu',
-        keymaps = {
-          close = { 'q' },
-          goto_location = '<Cr>',
-          focus_location = 'o',
-          hover_symbol = '<C-space>',
-          toggle_preview = 'K',
-          rename_symbol = 'r',
-          code_actions = 'a',
+        show_symbol_lineno = false,
+      },
+      preview_window = {
+        auto_preview = false,
+      },
+      providers = {
+        lsp = { blacklist_clients = {} },
+      },
+      keymaps = {
+        close = 'q',
+        goto_location = '<CR>',
+        peek_location = 'o',
+        hover_symbol = '<C-space>',
+        toggle_preview = 'K',
+        rename_symbol = 'r',
+        code_actions = 'a',
+        down_and_jump = {},
+        up_and_jump = {},
+      },
+      symbols = {
+        filter = {
+          'Variable',
+          'EnumMember',
+          'Field',
+          exclude = true,
         },
-        lsp_blacklist = {},
-        symbol_blacklist = { 'Variable', 'EnumMember', 'Field' },
-        symbols = {
+        icons = {
           File = { icon = '', hl = 'TSURI' },
           Module = { icon = '', hl = 'TSNamespace' },
           Namespace = { icon = '', hl = 'TSNamespace' },
@@ -1086,8 +1103,8 @@ require('lazy').setup({
           Event = { icon = '', hl = 'TSType' },
           Operator = { icon = '+', hl = 'TSOperator' },
         },
-      }
-    end,
+      },
+    },
   },
 
   -- nvim-tree
