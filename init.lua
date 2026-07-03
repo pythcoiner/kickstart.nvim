@@ -310,13 +310,7 @@ vim.keymap.set('n', '<leader>cx', AddCommentToQFList, { noremap = true, silent =
 vim.keymap.set('n', '<leader>co', ':copen<CR>', { desc = 'Open QuickFixList' })
 vim.keymap.set('n', '<leader>cv', LoadTodo, { desc = 'Open Todo' })
 vim.keymap.set('n', '<leader>cp', function()
-  local commit = vim.fn.system('git rev-parse --short HEAD'):gsub('%s+', '')
-  if vim.v.shell_error ~= 0 or commit == '' then
-    vim.notify('No commit to record (not a git repo?)', vim.log.levels.ERROR)
-    return
-  end
-  vim.g.recorded_commit = commit
-  vim.notify('Recorded commit ' .. commit, vim.log.levels.INFO)
+  require('checkpoint').record()
 end, { desc = 'record [C]heck[P]oint' })
 vim.keymap.set('n', '<leader>cd', RemoveQFEntry, { desc = 'Remove QuickFixList entry' })
 vim.keymap.set('n', '<leader>cc', ':ccl<CR>', { desc = 'Close QuickFixList' })
@@ -402,12 +396,9 @@ vim.keymap.set('n', '<leader>hc', function()
 end, { desc = 'Load hunks in QFL (diff against reflog point)' })
 
 vim.keymap.set('n', '<leader>hv', function()
-  local base = vim.g.recorded_commit
-  if not base or base == '' then
-    vim.notify('No commit recorded (use <leader>cp)', vim.log.levels.ERROR)
-    return
-  end
-  diff_qfl(base)
+  require('checkpoint').pick(function(hash)
+    diff_qfl(hash)
+  end)
 end, { desc = 'Load hunks in QFL (diff against checkpoint)' })
 
 vim.keymap.set('n', '<leader>hm', function()
@@ -1885,6 +1876,7 @@ require('commit-picker').setup()
 require('file-picker').setup()
 require('branch-picker').setup()
 require('reflog-picker').setup()
+require('checkpoint').setup()
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
