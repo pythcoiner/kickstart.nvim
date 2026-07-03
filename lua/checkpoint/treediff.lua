@@ -211,12 +211,19 @@ local function open_picker(session, diff_qfl)
 
   render()
   setup_keymaps()
-  -- Land on the first selectable row (newest diff entry)
+  -- Land on the checked-out entry (*) when there is one, else the first selectable row
+  local target
   for i, row in ipairs(state.rows) do
     if row.selectable then
-      vim.api.nvim_win_set_cursor(state.win, { i, 0 })
-      break
+      if row.is_head then
+        target = i
+        break
+      end
+      target = target or i
     end
+  end
+  if target then
+    vim.api.nvim_win_set_cursor(state.win, { target, 0 })
   end
 end
 
