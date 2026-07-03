@@ -396,10 +396,12 @@ vim.keymap.set('n', '<leader>hc', function()
 end, { desc = 'Load hunks in QFL (diff against reflog point)' })
 
 vim.keymap.set('n', '<leader>hv', function()
-  require('checkpoint').pick(function(hash)
-    diff_qfl(hash)
-  end)
-end, { desc = 'Load hunks in QFL (diff against checkpoint)' })
+  require('checkpoint.treediff').open(diff_qfl)
+end, { desc = 'Tree-diff session against a checkpoint' })
+
+vim.keymap.set('n', '<leader>hV', function()
+  require('checkpoint.treediff').close()
+end, { desc = 'Close tree-diff session' })
 
 vim.keymap.set('n', '<leader>hm', function()
   vim.ui.input({ prompt = 'Commit to diff against: ' }, function(ref)
