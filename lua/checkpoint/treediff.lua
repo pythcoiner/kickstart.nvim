@@ -73,6 +73,7 @@ local PREFIX = { ['>'] = '+', ['<'] = '-', ['!'] = '~' }
 -- commits collapsed into one [...] line, merge-base as a non-selectable bottom row.
 local function build_rows(session)
   local rows = {}
+  local head = git('rev-parse HEAD')
   local run = 0
   local function flush()
     if run > 0 then
@@ -86,7 +87,12 @@ local function build_rows(session)
       run = run + 1
     else
       flush()
-      rows[#rows + 1] = { selectable = true, entry = e, prefix = PREFIX[e.status] }
+      rows[#rows + 1] = {
+        selectable = true,
+        entry = e,
+        prefix = PREFIX[e.status],
+        is_head = git('rev-parse ' .. e.checkout_target) == head,
+      }
     end
   end
   flush()
@@ -99,7 +105,8 @@ local function row_line(row)
   if not row.selectable then return row.line end
   local e = row.entry
   local marks = e.empty_tree and ' (root)' or ''
-  return string.format('%s %s  %s%s', row.prefix, e.checkout_target, e.subject, marks)
+  local mark = row.is_head and '*' or ' '
+  return string.format('%s %s %s %s%s', row.prefix, e.checkout_target, mark, e.subject, marks)
 end
 
 local function render()

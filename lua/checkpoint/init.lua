@@ -77,8 +77,12 @@ local function render()
 
   local lines = {}
   for i, entry in ipairs(state.entries) do
-    local label = (entry.comment and entry.comment ~= '') and entry.comment or entry.subject
-    lines[i] = string.format('%s  %s  (%s)', entry.hash, label, entry.time)
+    if entry.branch then
+      lines[i] = entry.branch
+    else
+      local label = (entry.comment and entry.comment ~= '') and entry.comment or entry.subject
+      lines[i] = string.format('%s  %s  (%s)', entry.hash, label, entry.time)
+    end
   end
 
   vim.bo[state.buf].modifiable = true
@@ -206,7 +210,7 @@ function M.pick(callback)
       if e.hash == mhash then dup = true break end
     end
     if not dup then
-      table.insert(state.entries, { hash = mhash, subject = 'master', time = 'branch', branch = 'master' })
+      table.insert(state.entries, { hash = mhash, branch = 'master' })
     end
   end
 
