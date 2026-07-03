@@ -86,7 +86,7 @@ local function build_rows(session)
       run = run + 1
     else
       flush()
-      rows[#rows + 1] = { selectable = true, entry = e, prefix = PREFIX[e.status], base_alt_on = false }
+      rows[#rows + 1] = { selectable = true, entry = e, prefix = PREFIX[e.status] }
     end
   end
   flush()
@@ -98,10 +98,7 @@ end
 local function row_line(row)
   if not row.selectable then return row.line end
   local e = row.entry
-  local marks = ''
-  if e.reword_only then marks = marks .. ' (reword only)' end
-  if e.empty_tree then marks = marks .. ' (root)' end
-  if row.base_alt_on then marks = marks .. ' [alt-base]' end
+  local marks = e.empty_tree and ' (root)' or ''
   return string.format('%s %s  %s%s', row.prefix, e.checkout_target, e.subject, marks)
 end
 
@@ -150,13 +147,6 @@ local function confirm()
     return
   end
 
-  local base = row.base_alt_on and e.base_alt or e.base
-  if e.reword_only and not row.base_alt_on then
-    local choice = vim.fn.confirm(
-      "Commit only changed its message (no content diff). Show the commit's own patch instead?",
-      '&Yes\n&No', 1)
-    if choice == 1 then base = e.base_alt end
-  end
   if e.empty_tree then
     vim.notify('Base is the empty tree (root commit); diff shows full file contents', vim.log.levels.INFO)
   end
@@ -170,20 +160,7 @@ local function confirm()
     return
   end
   vim.cmd 'checktime'
-  diff_qfl(base)
-end
-
--- Swap this entry's base to the commit's own patch (new^) and back
-local function toggle()
-  local row = state.rows[vim.api.nvim_win_get_cursor(state.win)[1]]
-  if not row or not row.selectable then return end
-  local e = row.entry
-  if not e.base_alt or e.base_alt == e.base then
-    vim.notify('No alternate base for this entry', vim.log.levels.WARN)
-    return
-  end
-  row.base_alt_on = not row.base_alt_on
-  render()
+  diff_qfl(e.base)
 end
 
 local function setup_keymaps()
@@ -191,7 +168,10 @@ local function setup_keymaps()
   vim.keymap.set('n', 'j', function() move_cursor(1) end, opts)
   vim.keymap.set('n', 'k', function() move_cursor(-1) end, opts)
   vim.keymap.set('n', '<CR>', confirm, opts)
-  vim.keymap.set('n', 't', toggle, opts)
+  vim.keymap.set('n', 'c', function()
+    close_win()
+    M.close()
+  end, opts)
   vim.keymap.set('n', 'q', close_win, opts)
   vim.keymap.set('n', '<Esc>', close_win, opts)
 end
@@ -214,7 +194,7 @@ local function open_picker(session, diff_qfl)
     row = win_opts.row,
     style = 'minimal',
     border = 'rounded',
-    title = ' Tree-diff (enter=checkout+diff, [t]=alt-base, q=close) ',
+    title = ' Tree-diff (enter=checkout+diff, [c]=close session, q=close) ',
     title_pos = 'center',
   })
 

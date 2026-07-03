@@ -36,22 +36,11 @@ local function parse_headers(text)
   return entries
 end
 
--- Fill checkout_target / base / base_alt and the reword_only / empty_tree flags (spec §2).
+-- Always diff the checked-out commit against its own parent, i.e. show just this
+-- commit's own patch. Root commits have no parent, so fall back to the empty tree.
 local function resolve(e)
   e.checkout_target = e[CHECKOUT[e.status]]
-
-  if e.status == '!' then
-    e.base = e.old
-    -- reword-only: old and new trees are identical, so a content diff would be empty
-    local _, derr = git('diff --quiet ' .. e.old .. ' ' .. e.new)
-    e.reword_only = derr == 0
-  elseif e.status == '>' then
-    e.base, e.empty_tree = parent_or_empty(e.new)
-  elseif e.status == '<' then
-    e.base, e.empty_tree = parent_or_empty(e.old)
-  end
-
-  e.base_alt = parent_or_empty(e.new)
+  e.base, e.empty_tree = parent_or_empty(e.checkout_target)
 end
 
 function M.compute(old_ref, new_ref, base_override)
