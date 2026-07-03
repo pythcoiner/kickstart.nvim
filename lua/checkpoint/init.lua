@@ -115,12 +115,28 @@ local function confirm()
   end
 end
 
+local function checkout()
+  local status = vim.fn.system('git status --porcelain')
+  if status ~= '' then
+    vim.notify('Unstashed changes detected. Stash or commit before checkout.', vim.log.levels.ERROR)
+    return
+  end
+
+  local pos = vim.api.nvim_win_get_cursor(state.win)
+  local entry = state.entries[pos[1]]
+  if not entry then return end
+
+  close()
+  vim.cmd('Git checkout ' .. entry.hash)
+end
+
 local function setup_keymaps()
   local opts = { buffer = state.buf, nowait = true, silent = true }
 
   vim.keymap.set('n', 'j', function() move_cursor(1) end, opts)
   vim.keymap.set('n', 'k', function() move_cursor(-1) end, opts)
   vim.keymap.set('n', '<CR>', confirm, opts)
+  vim.keymap.set('n', 'c', checkout, opts)
   vim.keymap.set('n', 'q', close, opts)
   vim.keymap.set('n', '<Esc>', close, opts)
 end
@@ -153,7 +169,7 @@ function M.pick(callback)
     row = win_opts.row,
     style = 'minimal',
     border = 'rounded',
-    title = ' Checkpoints (enter=diff, q=close) ',
+    title = ' Checkpoints (enter=diff, [c]heckout, q=close) ',
     title_pos = 'center',
   })
 
