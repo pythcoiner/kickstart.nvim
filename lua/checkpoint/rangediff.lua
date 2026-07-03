@@ -36,11 +36,17 @@ local function parse_headers(text)
   return entries
 end
 
--- Always diff the checked-out commit against its own parent, i.e. show just this
--- commit's own patch. Root commits have no parent, so fall back to the empty tree.
+-- Show, per entry, what changed since the checkpoint. For a changed (!) commit that
+-- is the delta between the checkpoint-side version (old) and the current one (new);
+-- for added (>) / dropped (<) it is that commit's own patch (checkout_target vs its
+-- parent, or the empty tree for a root commit).
 local function resolve(e)
   e.checkout_target = e[CHECKOUT[e.status]]
-  e.base, e.empty_tree = parent_or_empty(e.checkout_target)
+  if e.status == '!' then
+    e.base = e.old
+  else
+    e.base, e.empty_tree = parent_or_empty(e.checkout_target)
+  end
 end
 
 function M.compute(old_ref, new_ref, base_override)
