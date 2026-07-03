@@ -378,6 +378,21 @@ vim.keymap.set('n', '<leader>hr', function()
   }
 end, { desc = 'Load hunks in QFL (diff against picked branch)' })
 
+vim.keymap.set('n', '<leader>hc', function()
+  require('reflog-picker').open {
+    title = 'Pick reflog entry (diff base)',
+    callback = function(ref)
+      vim.g.gitgutter_diff_base = ref
+      vim.g.gitgutter_relative_to = 'working_tree'
+      vim.cmd 'GitGutterDisable'
+      vim.cmd 'GitGutterEnable'
+      vim.cmd 'GitGutterQuickFix'
+      vim.cmd 'copen'
+      print('diff against ' .. ref)
+    end,
+  }
+end, { desc = 'Load hunks in QFL (diff against reflog point)' })
+
 vim.keymap.set('n', '<leader>gre', function()
   -- Check for uncommitted changes
   local status = vim.fn.system 'git status --porcelain'
@@ -1838,6 +1853,7 @@ require('float-term').setup()
 require('commit-picker').setup()
 require('file-picker').setup()
 require('branch-picker').setup()
+require('reflog-picker').setup()
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
