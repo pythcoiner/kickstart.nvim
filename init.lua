@@ -308,7 +308,16 @@ end
 
 vim.keymap.set('n', '<leader>cx', AddCommentToQFList, { noremap = true, silent = true, desc = 'Add entry to QuickFixList' })
 vim.keymap.set('n', '<leader>co', ':copen<CR>', { desc = 'Open QuickFixList' })
-vim.keymap.set('n', '<leader>cp', LoadTodo, { desc = 'Open Todo' })
+vim.keymap.set('n', '<leader>cv', LoadTodo, { desc = 'Open Todo' })
+vim.keymap.set('n', '<leader>cp', function()
+  local commit = vim.fn.system('git rev-parse --short HEAD'):gsub('%s+', '')
+  if vim.v.shell_error ~= 0 or commit == '' then
+    vim.notify('No commit to record (not a git repo?)', vim.log.levels.ERROR)
+    return
+  end
+  vim.g.recorded_commit = commit
+  vim.notify('Recorded commit ' .. commit, vim.log.levels.INFO)
+end, { desc = 'record [C]heck[P]oint' })
 vim.keymap.set('n', '<leader>cd', RemoveQFEntry, { desc = 'Remove QuickFixList entry' })
 vim.keymap.set('n', '<leader>cc', ':ccl<CR>', { desc = 'Close QuickFixList' })
 
@@ -326,6 +335,17 @@ vim.keymap.set('n', '<C-k>', '<C-u>', { desc = 'Page Up' })
 
 -- Quick Fix List feature
 vim.keymap.set('n', '<leader>c<leader>', ':cnext', { desc = ' Next QFL element' })
+
+-- Load working-tree hunks against a git ref into the QuickFixList
+local function diff_qfl(base)
+  vim.g.gitgutter_diff_base = base
+  vim.g.gitgutter_relative_to = 'working_tree'
+  vim.cmd 'GitGutterDisable'
+  vim.cmd 'GitGutterEnable'
+  vim.cmd 'GitGutterQuickFix'
+  vim.cmd 'copen'
+  print('diff against ' .. base)
+end
 
 -- Load hunks in QuickFixList
 vim.keymap.set('n', '<leader>hq', function()
@@ -367,13 +387,7 @@ vim.keymap.set('n', '<leader>hr', function()
         vim.notify('Picked branch is the current branch', vim.log.levels.ERROR)
         return
       end
-      vim.g.gitgutter_diff_base = old
-      vim.g.gitgutter_relative_to = 'working_tree'
-      vim.cmd 'GitGutterDisable'
-      vim.cmd 'GitGutterEnable'
-      vim.cmd 'GitGutterQuickFix'
-      vim.cmd 'copen'
-      print('diff against ' .. old)
+      diff_qfl(old)
     end,
   }
 end, { desc = 'Load hunks in QFL (diff against picked branch)' })
@@ -382,16 +396,33 @@ vim.keymap.set('n', '<leader>hc', function()
   require('reflog-picker').open {
     title = 'Pick reflog entry (diff base)',
     callback = function(ref)
-      vim.g.gitgutter_diff_base = ref
-      vim.g.gitgutter_relative_to = 'working_tree'
-      vim.cmd 'GitGutterDisable'
-      vim.cmd 'GitGutterEnable'
-      vim.cmd 'GitGutterQuickFix'
-      vim.cmd 'copen'
-      print('diff against ' .. ref)
+      diff_qfl(ref)
     end,
   }
 end, { desc = 'Load hunks in QFL (diff against reflog point)' })
+
+vim.keymap.set('n', '<leader>hv', function()
+  local base = vim.g.recorded_commit
+  if not base or base == '' then
+    vim.notify('No commit recorded (use <leader>cp)', vim.log.levels.ERROR)
+    return
+  end
+  diff_qfl(base)
+end, { desc = 'Load hunks in QFL (diff against checkpoint)' })
+
+vim.keymap.set('n', '<leader>hm', function()
+  vim.ui.input({ prompt = 'Commit to diff against: ' }, function(ref)
+    if not ref or ref == '' then
+      return
+    end
+    vim.fn.system('git rev-parse --verify --quiet ' .. ref .. '^{commit}')
+    if vim.v.shell_error ~= 0 then
+      vim.notify('Not a valid commit: ' .. ref, vim.log.levels.ERROR)
+      return
+    end
+    diff_qfl(ref)
+  end)
+end, { desc = 'Load hunks in QFL (diff against entered commit)' })
 
 vim.keymap.set('n', '<leader>gre', function()
   -- Check for uncommitted changes
