@@ -40,19 +40,84 @@ end
 -- is the delta between the checkpoint-side version (old) and the current one (new);
 -- for added (>) / dropped (<) it is that commit's own patch (checkout_target vs its
 -- parent, or the empty tree for a root commit).
+-- Why a synthetic base: for a changed (!) entry we want to compare the commit
+-- before edit with the commit after edit. But old and new are whole-branch
+-- snapshots, not the commit alone: their trees also differ by every fixup folded
+-- into the commits below this one, so `git diff old new` drags all of those in,
+-- and `git diff new^ new` shows the whole commit instead of just its edit. The
+-- revision that isolates the edit exists nowhere in history, so we build it:
+--
+--   synthetic base = new's tree (all commits below, in their new, folded form)
+--                  + this commit in its OLD form (old's patch transplanted onto
+--                    new^'s content via 3-way merge, file by file)
+--
+-- The working tree after checkout is new = same folded commits below + this
+-- commit in its NEW form. Everything below is identical on both sides and
+-- cancels out, so diff(base, new) is exactly this commit's change-of-change.
+-- It is a real commit object, so gitgutter can use it as diff base for both
+-- the quickfix list and per-buffer signs (git show <base>:<file> resolves).
+local function synthetic_base(e)
+  local own = git('diff --name-only ' .. e.new .. '^ ' .. e.new)
+  if own == '' then return nil end
+
+  local index = vim.fn.tempname()
+  local env = 'GIT_INDEX_FILE=' .. vim.fn.shellescape(index) .. ' '
+  local function giti(cmd)
+    local out = vim.fn.system(env .. 'git ' .. cmd)
+    return out:gsub('%s+$', ''), vim.v.shell_error
+  end
+
+  local function show_to(rev, file, dst)
+    -- missing on that side (file added/deleted by the commit) -> empty content
+    local content = vim.fn.system('git show ' .. rev .. ':' .. vim.fn.shellescape(file))
+    if vim.v.shell_error ~= 0 then content = '' end
+    local f = io.open(dst, 'w')
+    if not f then return false end
+    f:write(content)
+    f:close()
+    return true
+  end
+
+  local _, rerr = giti('read-tree ' .. e.new)
+  if rerr ~= 0 then return nil end
+
+  local cur, base, other = vim.fn.tempname(), vim.fn.tempname(), vim.fn.tempname()
+  for file in own:gmatch('[^\n]+') do
+    if not (show_to(e.new .. '^', file, cur) and show_to(e.old .. '^', file, base) and show_to(e.old, file, other)) then
+      return nil
+    end
+    local merged = vim.fn.system('git merge-file -p ' .. cur .. ' ' .. base .. ' ' .. other)
+    if vim.v.shell_error ~= 0 then
+      -- conflicting transplant: keep old's whole version of this file
+      merged = vim.fn.system('git show ' .. e.old .. ':' .. vim.fn.shellescape(file))
+      if vim.v.shell_error ~= 0 then merged = '' end
+    end
+    local f = io.open(cur, 'w')
+    if not f then return nil end
+    f:write(merged)
+    f:close()
+    local sha = vim.fn.system('git hash-object -w ' .. cur):gsub('%s+$', '')
+    if vim.v.shell_error ~= 0 then return nil end
+    local mode = vim.fn.system('git ls-tree ' .. e.new .. ' -- ' .. vim.fn.shellescape(file)):match('^(%d+)') or '100644'
+    local _, uerr = giti('update-index --add --cacheinfo ' .. mode .. ',' .. sha .. ',' .. vim.fn.shellescape(file))
+    if uerr ~= 0 then return nil end
+  end
+
+  local tree, terr = giti('write-tree')
+  if terr ~= 0 then return nil end
+  local commit, cerr = giti('commit-tree ' .. tree .. ' -m hv-base')
+  os.remove(index)
+  os.remove(cur)
+  os.remove(base)
+  os.remove(other)
+  if cerr ~= 0 then return nil end
+  return commit
+end
+
 local function resolve(e)
   e.checkout_target = e[CHECKOUT[e.status]]
   if e.status == '!' then
-    e.base = e.old
-    -- Restrict the checkpoint-delta to the files this commit itself touches, so
-    -- sibling commits' folded fixups don't leak in. Repo-root-relative (:/) so it
-    -- is CWD-independent.
-    local own = git('diff --name-only ' .. e.new .. '^ ' .. e.new)
-    local spec = {}
-    for f in own:gmatch('[^\n]+') do
-      spec[#spec + 1] = ':/' .. f
-    end
-    e.paths = #spec > 0 and table.concat(spec, ' ') or nil
+    e.base = synthetic_base(e) or e.old
   else
     e.base, e.empty_tree = parent_or_empty(e.checkout_target)
   end
