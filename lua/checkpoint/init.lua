@@ -77,7 +77,8 @@ local function render()
 
   local lines = {}
   for i, entry in ipairs(state.entries) do
-    lines[i] = string.format('%s  %s  (%s)', entry.hash, entry.subject, entry.time)
+    local label = (entry.comment and entry.comment ~= '') and entry.comment or entry.subject
+    lines[i] = string.format('%s  %s  (%s)', entry.hash, label, entry.time)
   end
 
   vim.bo[state.buf].modifiable = true
@@ -99,6 +100,7 @@ local function close()
   state.buf = nil
   state.entries = {}
   state.callback = nil
+  state.path = nil
 end
 
 local function confirm()
@@ -127,7 +129,51 @@ local function checkout()
   if not entry then return end
 
   close()
-  vim.cmd('Git checkout ' .. entry.hash)
+  vim.cmd('Git checkout ' .. (entry.branch or entry.hash))
+end
+
+-- Persist only real checkpoints; synthetic entries (e.g. the master branch) are not saved
+local function persist()
+  local real = {}
+  for _, e in ipairs(state.entries) do
+    if not e.branch then real[#real + 1] = e end
+  end
+  write_list(state.path, real)
+end
+
+local function remove()
+  local pos = vim.api.nvim_win_get_cursor(state.win)[1]
+  local entry = state.entries[pos]
+  if not entry then return end
+  if entry.branch then
+    vim.notify('Cannot delete a branch entry', vim.log.levels.WARN)
+    return
+  end
+  table.remove(state.entries, pos)
+  persist()
+  if #state.entries == 0 then
+    close()
+    vim.notify('No checkpoints left', vim.log.levels.INFO)
+    return
+  end
+  render()
+  vim.api.nvim_win_set_cursor(state.win, { math.min(pos, #state.entries), 0 })
+end
+
+-- Set/edit a comment shown instead of the commit message; empty input clears it
+local function comment()
+  local entry = state.entries[vim.api.nvim_win_get_cursor(state.win)[1]]
+  if not entry then return end
+  if entry.branch then
+    vim.notify('Cannot comment a branch entry', vim.log.levels.WARN)
+    return
+  end
+  vim.ui.input({ prompt = 'Comment (empty to clear): ', default = entry.comment or '' }, function(input)
+    if input == nil then return end
+    entry.comment = input ~= '' and input or nil
+    persist()
+    render()
+  end)
 end
 
 local function setup_keymaps()
@@ -137,6 +183,8 @@ local function setup_keymaps()
   vim.keymap.set('n', 'k', function() move_cursor(-1) end, opts)
   vim.keymap.set('n', '<CR>', confirm, opts)
   vim.keymap.set('n', 'c', checkout, opts)
+  vim.keymap.set('n', 'a', comment, opts)
+  vim.keymap.set('n', 'd', remove, opts)
   vim.keymap.set('n', 'q', close, opts)
   vim.keymap.set('n', '<Esc>', close, opts)
 end
@@ -149,12 +197,26 @@ function M.pick(callback)
   end
 
   state.entries = read_list(path)
+
+  -- Offer the master branch as a selectable base too, when it exists and isn't already a checkpoint
+  local mhash = vim.fn.system('git rev-parse --verify --quiet --short master'):gsub('%s+', '')
+  if vim.v.shell_error == 0 and mhash ~= '' then
+    local dup = false
+    for _, e in ipairs(state.entries) do
+      if e.hash == mhash then dup = true break end
+    end
+    if not dup then
+      table.insert(state.entries, { hash = mhash, subject = 'master', time = 'branch', branch = 'master' })
+    end
+  end
+
   if #state.entries == 0 then
     vim.notify('No checkpoints (use <leader>cp)', vim.log.levels.WARN)
     return
   end
 
   state.callback = callback
+  state.path = path
 
   state.buf = vim.api.nvim_create_buf(false, true)
   vim.bo[state.buf].buftype = 'nofile'
@@ -169,7 +231,7 @@ function M.pick(callback)
     row = win_opts.row,
     style = 'minimal',
     border = 'rounded',
-    title = ' Checkpoints (enter=diff, [c]heckout, q=close) ',
+    title = ' Checkpoints (enter=diff, [c]heckout, [a]comment, [d]elete, q=close) ',
     title_pos = 'center',
   })
 
