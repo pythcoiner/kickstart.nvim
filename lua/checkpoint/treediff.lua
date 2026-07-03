@@ -167,7 +167,7 @@ local function confirm()
     return
   end
   vim.cmd 'checktime'
-  diff_qfl(e.base)
+  diff_qfl(e.base, e.paths)
 end
 
 local function setup_keymaps()

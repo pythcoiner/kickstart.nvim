@@ -331,8 +331,8 @@ vim.keymap.set('n', '<C-k>', '<C-u>', { desc = 'Page Up' })
 vim.keymap.set('n', '<leader>c<leader>', ':cnext', { desc = ' Next QFL element' })
 
 -- Load working-tree hunks against a git ref into the QuickFixList
-local function diff_qfl(base)
-  vim.g.gitgutter_diff_base = base
+local function diff_qfl(base, paths)
+  vim.g.gitgutter_diff_base = paths and (base .. ' -- ' .. paths) or base
   vim.g.gitgutter_relative_to = 'working_tree'
   vim.cmd 'GitGutterDisable'
   vim.cmd 'GitGutterEnable'

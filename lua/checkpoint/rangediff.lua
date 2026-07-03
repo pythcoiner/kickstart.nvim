@@ -44,6 +44,15 @@ local function resolve(e)
   e.checkout_target = e[CHECKOUT[e.status]]
   if e.status == '!' then
     e.base = e.old
+    -- Restrict the checkpoint-delta to the files this commit itself touches, so
+    -- sibling commits' folded fixups don't leak in. Repo-root-relative (:/) so it
+    -- is CWD-independent.
+    local own = git('diff --name-only ' .. e.new .. '^ ' .. e.new)
+    local spec = {}
+    for f in own:gmatch('[^\n]+') do
+      spec[#spec + 1] = ':/' .. f
+    end
+    e.paths = #spec > 0 and table.concat(spec, ' ') or nil
   else
     e.base, e.empty_tree = parent_or_empty(e.checkout_target)
   end
