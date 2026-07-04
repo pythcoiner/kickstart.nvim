@@ -941,6 +941,7 @@ require('lazy').setup({
       -- Optional: Other configurations
       vim.g.gitgutter_enabled = 1
       vim.g.gitgutter_highlight_lines = 1
+      vim.g.gitgutter_diff_args = '-b' -- Do not shot whitespace changes in git diffs
       -- vim.g.gitgutter_map_keys = 0  -- Disable default mappings
     end,
   },
