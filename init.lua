@@ -400,7 +400,7 @@ vim.keymap.set('n', '<leader>hv', function()
 end, { desc = 'Tree-diff session against a checkpoint' })
 
 vim.keymap.set('n', '<leader>hV', function()
-  require('checkpoint.treediff').close()
+  require('checkpoint.treediff').close(diff_qfl)
 end, { desc = 'Close tree-diff session' })
 
 vim.keymap.set('n', '<leader>hm', function()

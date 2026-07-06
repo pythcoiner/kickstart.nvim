@@ -176,8 +176,9 @@ local function setup_keymaps()
   vim.keymap.set('n', 'k', function() move_cursor(-1) end, opts)
   vim.keymap.set('n', '<CR>', confirm, opts)
   vim.keymap.set('n', 'c', function()
+    local diff_qfl = state.diff_qfl
     close_win()
-    M.close()
+    M.close(diff_qfl)
   end, opts)
   vim.keymap.set('n', 'q', close_win, opts)
   vim.keymap.set('n', '<Esc>', close_win, opts)
@@ -287,7 +288,7 @@ function M.open(diff_qfl)
 end
 
 -- <leader>hV: check back out to the starting branch and drop the session
-function M.close()
+function M.close(diff_qfl)
   if not session_exists() then
     vim.notify('No active hv session', vim.log.levels.WARN)
     return
@@ -308,6 +309,12 @@ function M.close()
   end
   vim.cmd 'checktime'
   clear()
+  -- Sweep the session's synthetic-base diff off the gutter/qfl back to a HEAD
+  -- diff, then close the qfl window
+  if diff_qfl then
+    diff_qfl('HEAD')
+  end
+  vim.cmd 'cclose'
   vim.notify('hv session closed, back on ' .. s.A.ref, vim.log.levels.INFO)
 end
 
