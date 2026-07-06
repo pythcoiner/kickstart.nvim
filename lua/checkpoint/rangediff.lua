@@ -47,69 +47,63 @@ end
 -- and `git diff new^ new` shows the whole commit instead of just its edit. The
 -- revision that isolates the edit exists nowhere in history, so we build it:
 --
---   synthetic base = new's tree (all commits below, in their new, folded form)
---                  + this commit in its OLD form (old's patch transplanted onto
---                    new^'s content via 3-way merge, file by file)
+--   synthetic base = new^'s tree (all commits below, in their new, folded form)
+--                  + this commit in its OLD form (old's patch transplanted via a
+--                    real 3-way tree merge: merge-tree --merge-base=old^ new^ old)
 --
 -- The working tree after checkout is new = same folded commits below + this
 -- commit in its NEW form. Everything below is identical on both sides and
--- cancels out, so diff(base, new) is exactly this commit's change-of-change.
--- It is a real commit object, so gitgutter can use it as diff base for both
--- the quickfix list and per-buffer signs (git show <base>:<file> resolves).
+-- cancels out, so diff(base, new) is exactly this commit's change-of-change,
+-- covering files touched by either version. A file whose transplant conflicts
+-- degrades to new^'s version, so it shows the commit's full new patch instead
+-- of conflict markers (and never a silently empty diff). The base is a real
+-- commit object, so gitgutter can use it for both the quickfix list and
+-- per-buffer signs (git show <base>:<file> resolves).
 local function synthetic_base(e)
-  local own = git('diff --name-only ' .. e.new .. '^ ' .. e.new)
-  if own == '' then return nil end
+  local out = vim.fn.system('git merge-tree --write-tree --merge-base=' .. e.old .. '^ ' .. e.new .. '^ ' .. e.old)
+  local rc = vim.v.shell_error
+  if rc ~= 0 and rc ~= 1 then return nil end
+  local tree = out:match('^(%x+)')
+  if not tree then return nil end
 
-  local index = vim.fn.tempname()
-  local env = 'GIT_INDEX_FILE=' .. vim.fn.shellescape(index) .. ' '
-  local function giti(cmd)
-    local out = vim.fn.system(env .. 'git ' .. cmd)
-    return out:gsub('%s+$', ''), vim.v.shell_error
-  end
-
-  local function show_to(rev, file, dst)
-    -- missing on that side (file added/deleted by the commit) -> empty content
-    local content = vim.fn.system('git show ' .. rev .. ':' .. vim.fn.shellescape(file))
-    if vim.v.shell_error ~= 0 then content = '' end
-    local f = io.open(dst, 'w')
-    if not f then return false end
-    f:write(content)
-    f:close()
-    return true
-  end
-
-  local _, rerr = giti('read-tree ' .. e.new)
-  if rerr ~= 0 then return nil end
-
-  local cur, base, other = vim.fn.tempname(), vim.fn.tempname(), vim.fn.tempname()
-  for file in own:gmatch('[^\n]+') do
-    if not (show_to(e.new .. '^', file, cur) and show_to(e.old .. '^', file, base) and show_to(e.old, file, other)) then
-      return nil
+  if rc == 1 then
+    -- Conflicted transplant: reset those files to new^'s version
+    local index = vim.fn.tempname()
+    local env = 'GIT_INDEX_FILE=' .. vim.fn.shellescape(index) .. ' '
+    local function giti(cmd)
+      local o = vim.fn.system(env .. 'git ' .. cmd)
+      return o:gsub('%s+$', ''), vim.v.shell_error
     end
-    local merged = vim.fn.system('git merge-file -p ' .. cur .. ' ' .. base .. ' ' .. other)
-    if vim.v.shell_error ~= 0 then
-      -- conflicting transplant: keep old's whole version of this file
-      merged = vim.fn.system('git show ' .. e.old .. ':' .. vim.fn.shellescape(file))
-      if vim.v.shell_error ~= 0 then merged = '' end
+
+    local _, rerr = giti('read-tree ' .. tree)
+    if rerr ~= 0 then return nil end
+
+    local seen = {}
+    for mode, path in out:gmatch('(%d+) %x+ %d+[ \t]([^\n]+)') do
+      if not seen[path] then
+        seen[path] = true
+        local blob = vim.fn.system('git rev-parse ' .. e.new .. '^:' .. vim.fn.shellescape(path)):gsub('%s+$', '')
+        local uerr
+        if vim.v.shell_error == 0 then
+          _, uerr = giti('update-index --add --cacheinfo ' .. vim.fn.shellescape(mode .. ',' .. blob .. ',' .. path))
+        else
+          -- file absent below the commit: drop it so it shows as fully added
+          _, uerr = giti('update-index --force-remove ' .. vim.fn.shellescape(path))
+        end
+        if uerr ~= 0 then
+          os.remove(index)
+          return nil
+        end
+      end
     end
-    local f = io.open(cur, 'w')
-    if not f then return nil end
-    f:write(merged)
-    f:close()
-    local sha = vim.fn.system('git hash-object -w ' .. cur):gsub('%s+$', '')
-    if vim.v.shell_error ~= 0 then return nil end
-    local mode = vim.fn.system('git ls-tree ' .. e.new .. ' -- ' .. vim.fn.shellescape(file)):match('^(%d+)') or '100644'
-    local _, uerr = giti('update-index --add --cacheinfo ' .. mode .. ',' .. sha .. ',' .. vim.fn.shellescape(file))
-    if uerr ~= 0 then return nil end
+
+    local terr
+    tree, terr = giti('write-tree')
+    os.remove(index)
+    if terr ~= 0 then return nil end
   end
 
-  local tree, terr = giti('write-tree')
-  if terr ~= 0 then return nil end
-  local commit, cerr = giti('commit-tree ' .. tree .. ' -m hv-base')
-  os.remove(index)
-  os.remove(cur)
-  os.remove(base)
-  os.remove(other)
+  local commit, cerr = git('commit-tree ' .. tree .. ' -m hv-base')
   if cerr ~= 0 then return nil end
   return commit
 end
