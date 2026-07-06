@@ -106,7 +106,7 @@ local function row_line(row)
   local e = row.entry
   local marks = e.empty_tree and ' (root)' or ''
   local mark = row.is_head and '*' or ' '
-  return string.format('%s %s %s %s%s', row.prefix, e.checkout_target, mark, e.subject, marks)
+  return string.format('%s %s %s %s%s', row.prefix, e.display, mark, e.subject, marks)
 end
 
 local function render()

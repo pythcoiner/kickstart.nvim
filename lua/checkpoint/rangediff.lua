@@ -3,8 +3,8 @@
 local M = {}
 
 local EMPTY_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904'
--- Which side of an entry is loaded into the working tree on checkout
-local CHECKOUT = { ['!'] = 'new', ['>'] = 'new', ['<'] = 'old', ['='] = 'new' }
+-- Which side of an entry identifies the commit it stands for (shown in the picker)
+local DISPLAY = { ['!'] = 'new', ['>'] = 'new', ['<'] = 'old', ['='] = 'new' }
 
 local function git(cmd)
   local out = vim.fn.system('git ' .. cmd)
@@ -109,11 +109,25 @@ local function synthetic_base(e)
 end
 
 local function resolve(e)
-  e.checkout_target = e[CHECKOUT[e.status]]
+  -- The commit this entry stands for (shown in the picker): the current version
+  -- for changed/added, the checkpoint version for dropped.
+  e.display = e[DISPLAY[e.status]]
   if e.status == '!' then
+    e.checkout_target = e.new
     e.base = synthetic_base(e) or e.old
+  elseif e.status == '<' then
+    -- Dropped commit: show its patch as a removal. Check out its parent (the
+    -- branch without the commit) and diff against the commit itself, so the
+    -- lines it had added appear removed rather than added.
+    local parent, is_root = parent_or_empty(e.old)
+    if is_root then
+      e.checkout_target, e.base, e.empty_tree = e.old, parent, true
+    else
+      e.checkout_target, e.base = parent, e.old
+    end
   else
-    e.base, e.empty_tree = parent_or_empty(e.checkout_target)
+    e.checkout_target = e.new
+    e.base, e.empty_tree = parent_or_empty(e.new)
   end
 end
 
