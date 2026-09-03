@@ -943,6 +943,108 @@ require('lazy').setup({
       vim.g.gitgutter_highlight_lines = 1
       vim.g.gitgutter_diff_args = '-b' -- Do not shot whitespace changes in git diffs
       -- vim.g.gitgutter_map_keys = 0  -- Disable default mappings
+
+      -- The quickfix reviewer opens its own float for error/warning entries
+      -- (gitgutter owns the float for change entries). Track it so we can close
+      -- it on the next navigation and on leaving the window.
+      local qf_float_win = nil
+      local function close_previews()
+        vim.fn['gitgutter#hunk#close_hunk_preview_window']()
+        if qf_float_win and vim.api.nvim_win_is_valid(qf_float_win) then
+          pcall(vim.api.nvim_win_close, qf_float_win, true)
+        end
+        qf_float_win = nil
+      end
+
+      -- Walk the current file's hunks, closing any open preview float first
+      -- (gitgutter leaves a stale window id otherwise, corrupting the next
+      -- preview with E5555). In a diff split fall back to vim's native ]c / [c.
+      local function hunk_nav(dir)
+        close_previews()
+        if vim.wo.diff then
+          vim.cmd.normal { dir == 'next' and ']c' or '[c', bang = true }
+          return
+        end
+        vim.fn['gitgutter#hunk#' .. dir .. '_hunk'](1)
+      end
+
+      -- Preview whatever the landed quickfix entry is: a git change shows the
+      -- hunk diff; anything else (LSP error/warning, todo, compiler message)
+      -- shows its message. A line inside a git hunk is treated as a change.
+      local function preview_qf_entry()
+        local buf = vim.fn.bufnr ''
+        local line = vim.fn.line '.'
+        local async = vim.g.gitgutter_async
+        vim.g.gitgutter_async = 0
+        vim.fn['gitgutter#process_buffer'](buf, 1)
+        local in_hunk = vim.fn['gitgutter#hunk#in_hunk'](line) == 1
+        vim.g.gitgutter_async = async
+        if in_hunk then
+          -- gitgutter copies the source window's 'wrap' onto its float; force it
+          -- off so long diff lines are truncated, not wrapped, in the preview
+          local w = vim.wo.wrap
+          vim.wo.wrap = false
+          vim.fn['gitgutter#hunk#preview']()
+          vim.wo.wrap = w
+          return
+        end
+        -- prefer a live LSP diagnostic (rich rust-analyzer/clangd float)
+        if #vim.diagnostic.get(buf, { lnum = line - 1 }) > 0 then
+          local _, win = vim.diagnostic.open_float { scope = 'line' }
+          if win then vim.wo[win].wrap = false end
+          qf_float_win = win
+          return
+        end
+        -- else fall back to the quickfix entry's own message text
+        local entry = vim.fn.getqflist()[vim.fn.getqflist({ idx = 0 }).idx]
+        if entry and entry.text ~= '' then
+          local _, win = vim.lsp.util.open_floating_preview(vim.split(entry.text, '\n'), 'plaintext', { border = 'rounded', wrap = false })
+          qf_float_win = win
+        end
+      end
+
+      -- Walk the quickfix list across files for review, previewing each entry as
+      -- a change or an error/warning, whichever it is. No wrap: stop at the ends
+      -- so the boundary is obvious.
+      local function qf_review(dir)
+        close_previews()
+        if #vim.fn.getqflist() == 0 then
+          vim.api.nvim_echo({ { 'Quickfix list is empty', 'WarningMsg' } }, false, {})
+          return
+        end
+        if not pcall(vim.cmd, dir == 'next' and 'cnext' or 'cprev') then
+          local msg = dir == 'next' and 'No more quickfix items' or 'No previous quickfix items'
+          vim.api.nvim_echo({ { msg, 'WarningMsg' } }, false, {})
+          return
+        end
+        vim.schedule(preview_qf_entry)
+      end
+
+      -- ]c / [c : next/prev hunk in the current file.
+      vim.keymap.set('n', ']c', function()
+        hunk_nav 'next'
+      end, { desc = 'Next hunk' })
+      vim.keymap.set('n', '[c', function()
+        hunk_nav 'prev'
+      end, { desc = 'Previous hunk' })
+      -- ]] / [[ : walk the quickfix list for review, previewing each entry as a
+      -- git change or an error/warning, whichever it is. Note: the rust ftplugin
+      -- binds these buffer-locally, so after/ftplugin/rust.lua drops those to let
+      -- these global maps through.
+      vim.keymap.set('n', ']]', function()
+        qf_review 'next'
+      end, { desc = 'Next qfl entry (change/error) + preview' })
+      vim.keymap.set('n', '[[', function()
+        qf_review 'prev'
+      end, { desc = 'Previous qfl entry (change/error) + preview' })
+
+      -- gitgutter only closes its preview float on CursorMoved within the source
+      -- buffer, so jumping elsewhere (e.g. through the quickfix list) leaves it
+      -- dangling. Close it (and any qfl error/warning float) on window/buffer leave.
+      vim.api.nvim_create_autocmd({ 'WinLeave', 'BufLeave' }, {
+        group = vim.api.nvim_create_augroup('GitGutterPreviewAutoclose', { clear = true }),
+        callback = close_previews,
+      })
     end,
   },
 
