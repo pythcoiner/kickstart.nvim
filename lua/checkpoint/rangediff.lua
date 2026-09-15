@@ -77,6 +77,10 @@ local function resolve(e)
   if e.status == '!' then
     e.checkout_target = e.new
     e.base = synthetic_base(e) or e.old
+    -- A changed entry whose own edit is unchanged (only context moved by commits
+    -- below it) has no net change; collapse it like an unchanged commit.
+    local _, d = git('diff -b --quiet ' .. e.base .. ' ' .. e.new)
+    if d == 0 then e.status = '=' end
   elseif e.status == '<' then
     -- Dropped commit: show its patch as a removal. Check out its parent (the
     -- branch without the commit) and diff against the commit itself, so the
