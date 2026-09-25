@@ -847,9 +847,12 @@ vim.g.rustaceanvim = {
   tools = {},
   -- LSP configuration
   server = {
-    -- on_attach = function(client, bufnr)
-    --   -- you can also put keymaps in here
-    -- end,
+    settings = require('cargo-feature-picker').settings,
+    on_attach = function(client, bufnr)
+      vim.keymap.set('n', '<leader>ff', function()
+        require('cargo-feature-picker').open(bufnr, client.id)
+      end, { buffer = bufnr, desc = 'LSP: Cargo [F]eatures' })
+    end,
     default_settings = {
       -- rust-analyzer language server configuration
       ['rust-analyzer'] = {
