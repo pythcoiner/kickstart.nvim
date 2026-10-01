@@ -287,6 +287,50 @@ local function open_picker(package, packages, cargo, bufnr, client_id, root_dir)
   setup_keymaps()
 end
 
+local function workspace_packages(metadata)
+  local workspace_members = {}
+  for _, id in ipairs(metadata.workspace_members or {}) do
+    workspace_members[id] = true
+  end
+  return vim.tbl_filter(function(candidate)
+    return workspace_members[candidate.id] == true
+  end, metadata.packages or {})
+end
+
+-- A `package/feature` saved from another checkout makes `cargo metadata` fail, and rust-analyzer loses the dependency graph
+local function drop_stale_features(root_dir, features, path)
+  local result = vim
+    .system({ 'cargo', 'metadata', '--no-deps', '--format-version', '1' }, {
+      cwd = root_dir,
+      text = true,
+    })
+    :wait()
+  local ok, metadata = pcall(vim.json.decode, result.stdout or '')
+  if result.code ~= 0 or not ok or type(metadata) ~= 'table' then
+    vim.notify('Cargo metadata failed, cannot check Cargo feature settings: ' .. path, vim.log.levels.WARN)
+    return features
+  end
+
+  local package_features = {}
+  for _, package in ipairs(workspace_packages(metadata)) do
+    package_features[package.name] = package.features
+  end
+  local kept = {}
+  local stale = {}
+  for _, feature in ipairs(features) do
+    local package_name, package_feature = feature:match '^([^/]+)/(.+)$'
+    if package_name and package_features[package_name] and package_features[package_name][package_feature] == nil then
+      table.insert(stale, feature)
+    else
+      table.insert(kept, feature)
+    end
+  end
+  if #stale > 0 then
+    vim.notify('Ignoring Cargo features missing from the workspace (' .. path .. '): ' .. table.concat(stale, ', '), vim.log.levels.WARN)
+  end
+  return kept
+end
+
 function M.settings(root_dir, default_settings)
   local settings = vim.deepcopy(default_settings or {})
   if not root_dir then
@@ -316,8 +360,10 @@ function M.settings(root_dir, default_settings)
   local cargo_settings = rust_analyzer.cargo or {}
   rust_analyzer.cargo = cargo_settings
   settings['rust-analyzer'] = rust_analyzer
-  if cargo.features ~= nil then
-    cargo_settings.features = vim.deepcopy(cargo.features)
+  if type(cargo.features) == 'table' then
+    cargo_settings.features = drop_stale_features(root_dir, cargo.features, path)
+  elseif cargo.features ~= nil then
+    cargo_settings.features = cargo.features
   end
   if cargo.noDefaultFeatures ~= nil then
     cargo_settings.noDefaultFeatures = cargo.noDefaultFeatures
@@ -402,13 +448,7 @@ function M.open(bufnr, client_id)
         return
       end
 
-      local workspace_members = {}
-      for _, id in ipairs(metadata.workspace_members or {}) do
-        workspace_members[id] = true
-      end
-      local packages = vim.tbl_filter(function(candidate)
-        return workspace_members[candidate.id] == true
-      end, metadata.packages or {})
+      local packages = workspace_packages(metadata)
       local cargo = vim.tbl_get(active_client.settings or {}, 'rust-analyzer', 'cargo') or {}
       open_picker(package, packages, cargo, bufnr, client_id, root_dir)
     end)
