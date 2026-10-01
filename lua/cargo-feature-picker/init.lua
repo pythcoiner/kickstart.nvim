@@ -4,6 +4,7 @@ local state = {
   win = nil,
   features = {},
   selected = {},
+  extra = {},
   source_buf = nil,
   client_id = nil,
   root_dir = nil,
@@ -65,6 +66,7 @@ local function close()
   state.buf = nil
   state.features = {}
   state.selected = {}
+  state.extra = {}
   state.source_buf = nil
   state.client_id = nil
   state.root_dir = nil
@@ -114,58 +116,71 @@ local function valid_cargo(cargo)
   return cargo.noDefaultFeatures == nil or type(cargo.noDefaultFeatures) == 'boolean'
 end
 
-local function add_feature(features, seen, feature)
-  if not seen[feature] then
-    table.insert(features, feature)
-    seen[feature] = true
+local function package_selection(package, cargo)
+  local features = vim.tbl_keys(package.features)
+  table.sort(features)
+  local selected = {}
+  if cargo.features == 'all' then
+    for _, feature in ipairs(features) do
+      selected[feature] = true
+    end
+  elseif type(cargo.features) == 'table' then
+    local package_prefix = package.name .. '/'
+    for _, configured_feature in ipairs(cargo.features) do
+      local feature = configured_feature
+      if feature:sub(1, #package_prefix) == package_prefix then
+        feature = feature:sub(#package_prefix + 1)
+      end
+      if package.features[feature] then
+        selected[feature] = true
+      end
+    end
   end
+  if cargo.features ~= 'all' and package.features.default and cargo.noDefaultFeatures ~= true then
+    selected.default = true
+  end
+  return features, selected
 end
 
-local function workspace_features()
+-- Every workspace member's features, shown as `package/feature`
+local function workspace_selection(packages, cargo)
   local features = {}
-  local seen = {}
-  local current = state.package
-  local current_prefix = current.name .. '/'
-
-  if state.cargo.features == 'all' then
-    for _, package in ipairs(state.packages) do
-      if package.id ~= current.id then
-        for feature in pairs(package.features) do
-          add_feature(features, seen, package.name .. '/' .. feature)
-        end
+  local selected = {}
+  local shown = {}
+  for _, package in ipairs(packages) do
+    for feature in pairs(package.features) do
+      local name = package.name .. '/' .. feature
+      table.insert(features, name)
+      shown[name] = true
+      if cargo.features == 'all' or (feature == 'default' and cargo.noDefaultFeatures ~= true) then
+        selected[name] = true
       end
-    end
-  elseif type(state.cargo.features) == 'table' then
-    for _, feature in ipairs(state.cargo.features) do
-      if feature:sub(1, #current_prefix) ~= current_prefix then
-        if current.features[feature] then
-          for _, package in ipairs(state.packages) do
-            if package.id ~= current.id and package.features[feature] then
-              add_feature(features, seen, package.name .. '/' .. feature)
-            end
-          end
-        else
-          add_feature(features, seen, feature)
-        end
-      end
-    end
-  end
-
-  if state.cargo.noDefaultFeatures ~= true then
-    for _, package in ipairs(state.packages) do
-      if package.id ~= current.id and package.features.default then
-        add_feature(features, seen, package.name .. '/default')
-      end
-    end
-  end
-
-  for _, feature in ipairs(state.features) do
-    if state.selected[feature] then
-      add_feature(features, seen, current.name .. '/' .. feature)
     end
   end
   table.sort(features)
-  return features
+
+  -- Saved entries matching no member feature (e.g. dependency features) are kept as is
+  local extra = {}
+  if type(cargo.features) == 'table' then
+    for _, configured in ipairs(cargo.features) do
+      local matched = shown[configured] == true
+      if matched then
+        selected[configured] = true
+      elseif not configured:find('/', 1, true) then
+        for _, package in ipairs(packages) do
+          local name = package.name .. '/' .. configured
+          if shown[name] then
+            selected[name] = true
+            matched = true
+          end
+        end
+      end
+      if not matched then
+        table.insert(extra, configured)
+      end
+    end
+  end
+  return features, selected, extra
 end
 
 local function confirm()
@@ -182,7 +197,14 @@ local function confirm()
 
   local cargo = state.cargo
   if #state.packages > 1 then
-    cargo.features = workspace_features()
+    local features = vim.list_extend({}, state.extra)
+    for _, feature in ipairs(state.features) do
+      if state.selected[feature] then
+        table.insert(features, feature)
+      end
+    end
+    table.sort(features)
+    cargo.features = features
     cargo.noDefaultFeatures = true
   else
     local features = {}
@@ -226,32 +248,16 @@ end
 
 local function open_picker(package, packages, cargo, bufnr, client_id, root_dir)
   close()
-  state.features = vim.tbl_keys(package.features)
-  table.sort(state.features)
+  local title = package.name
+  if #packages > 1 then
+    title = vim.fs.basename(root_dir)
+    state.features, state.selected, state.extra = workspace_selection(packages, cargo)
+  else
+    state.features, state.selected = package_selection(package, cargo)
+  end
   if #state.features == 0 then
-    vim.notify('No Cargo features found for ' .. package.name, vim.log.levels.ERROR)
+    vim.notify('No Cargo features found for ' .. title, vim.log.levels.ERROR)
     return
-  end
-
-  state.selected = {}
-  if cargo.features == 'all' then
-    for _, feature in ipairs(state.features) do
-      state.selected[feature] = true
-    end
-  elseif type(cargo.features) == 'table' then
-    local package_prefix = package.name .. '/'
-    for _, configured_feature in ipairs(cargo.features) do
-      local feature = configured_feature
-      if feature:sub(1, #package_prefix) == package_prefix then
-        feature = feature:sub(#package_prefix + 1)
-      end
-      if package.features[feature] then
-        state.selected[feature] = true
-      end
-    end
-  end
-  if cargo.features ~= 'all' and package.features.default and cargo.noDefaultFeatures ~= true then
-    state.selected.default = true
   end
 
   state.source_buf = bufnr
@@ -273,7 +279,7 @@ local function open_picker(package, packages, cargo, bufnr, client_id, root_dir)
     row = win_opts.row,
     style = 'minimal',
     border = 'rounded',
-    title = ' Cargo features: ' .. package.name .. ' ',
+    title = ' Cargo features: ' .. title .. ' ',
     title_pos = 'center',
     footer = ' Space=toggle, Enter=apply, q=cancel ',
     footer_pos = 'center',
