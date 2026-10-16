@@ -36,6 +36,30 @@ local function parse_headers(text)
   return entries
 end
 
+-- git range-diff pairs commits by patch content only, so a commit reworked past
+-- its creation factor comes back as a drop plus an add. Pair such a drop with the
+-- add carrying the same subject into one changed entry, kept at the add's position.
+local function pair_by_subject(entries)
+  local dropped = {}
+  for _, e in ipairs(entries) do
+    if e.status == '<' and not dropped[e.subject] then dropped[e.subject] = e end
+  end
+  local merged = {}
+  for _, e in ipairs(entries) do
+    local d = dropped[e.subject]
+    if e.status == '>' and d then
+      e.status, e.old = '!', d.old
+      dropped[e.subject] = nil
+      merged[d] = true
+    end
+  end
+  local out = {}
+  for _, e in ipairs(entries) do
+    if not merged[e] then out[#out + 1] = e end
+  end
+  return out
+end
+
 -- Show, per entry, what changed since the checkpoint. For a changed (!) commit that
 -- is the delta between the checkpoint-side version (old) and the current one (new);
 -- for added (>) / dropped (<) it is that commit's own patch (checkout_target vs its
@@ -107,7 +131,7 @@ function M.compute(old_ref, new_ref, base_override)
     return nil, 'git range-diff failed: ' .. out
   end
 
-  local entries = parse_headers(out)
+  local entries = pair_by_subject(parse_headers(out))
   for _, e in ipairs(entries) do
     resolve(e)
   end
